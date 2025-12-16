@@ -99,6 +99,18 @@ jobs:
           
           echo "🔐 Using Koyeb API token (CLI reads KOYEB_TOKEN from environment)"
           
+          # Use the explicit image name with latest tag (without docker.io prefix for public images)
+          DOCKER_IMAGE="${{ env.IMAGE_NAME }}:latest"
+          echo "📦 Using Docker image: $DOCKER_IMAGE"
+          
+          # Verify the image format (Koyeb accepts both with and without docker.io prefix)
+          # For public images, we can use just the image name
+          echo "🔍 Image will be pulled from: docker.io/$DOCKER_IMAGE"
+          
+          # Wait a moment for Docker Hub to propagate the image (if just built)
+          echo "⏳ Waiting 15 seconds for Docker Hub image propagation..."
+          sleep 15
+          
           # Check if app exists, create if not
           echo "📦 Checking for app nemotron-3-inference..."
           if koyeb app get nemotron-3-inference > /dev/null 2>&1; then
@@ -112,11 +124,11 @@ jobs:
           fi
 
           # Deploy or update the service
-          echo "🚀 Deploying service..."
+          echo "🚀 Deploying service with image: $DOCKER_IMAGE"
           if koyeb service get nemotron-3-inference/nemotron > /dev/null 2>&1; then
             echo "📝 Updating existing service..."
             koyeb service update nemotron-3-inference/nemotron \
-              --docker "${{ env.IMAGE_NAME }}:latest" \
+              --docker "$DOCKER_IMAGE" \
               --instance-type gpu-nvidia-a100 \
               --regions fra \
               --ports 8000:http \
@@ -130,7 +142,7 @@ jobs:
             echo "📝 Creating new service..."
             koyeb service create nemotron \
               --app nemotron-3-inference \
-              --docker "${{ env.IMAGE_NAME }}:latest" \
+              --docker "$DOCKER_IMAGE" \
               --instance-type gpu-nvidia-a100 \
               --regions fra \
               --ports 8000:http \
