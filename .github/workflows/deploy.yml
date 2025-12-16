@@ -66,188 +66,51 @@ jobs:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Koyeb CLI and jq
+      - name: Install Koyeb CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | bash
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
-          sudo apt-get update && sudo apt-get install -y jq || echo "jq install failed, will use alternative method"
 
       - name: Deploy to Koyeb
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
-          # Get token from secrets (matches .env variable name KOYEB_API_TOKEN)
-          KOYEB_API_TOKEN="${{ secrets.KOYEB_API_TOKEN }}"
+          # Clean token (remove quotes if present)
+          export KOYEB_TOKEN=$(echo "$KOYEB_TOKEN" | sed "s/^['\"]//; s/['\"]$//")
           
-          # Verify token is set
-          if [ -z "$KOYEB_API_TOKEN" ]; then
-            echo "❌ KOYEB_API_TOKEN secret is not set"
-            exit 1
-          fi
-          
-          # Remove single quotes, double quotes, and all whitespace
-          CLEAN_TOKEN=$(echo "$KOYEB_API_TOKEN" | sed "s/^['\"]//; s/['\"]$//" | tr -d '\r\n\t ' | xargs)
-          
-          # Verify token is not empty after cleaning
-          if [ -z "$CLEAN_TOKEN" ]; then
-            echo "❌ Token is empty after cleaning"
-            exit 1
-          fi
-          
-          # Export as KOYEB_TOKEN (Koyeb CLI expects this exact name)
-          export KOYEB_TOKEN="$CLEAN_TOKEN"
-          
-          echo "🔐 Using Koyeb API token (CLI reads KOYEB_TOKEN from environment)"
-          
-          # Use the explicit image name with latest tag
-          # Try without docker.io prefix first (Koyeb may prefer this format)
-          DOCKER_IMAGE="${{ env.IMAGE_NAME }}:latest"
+          # Docker image with full registry path
+          DOCKER_IMAGE="docker.io/${{ env.IMAGE_NAME }}:latest"
           echo "📦 Using Docker image: $DOCKER_IMAGE"
           
-          # Verify image exists on Docker Hub before deploying
-          echo "🔍 Verifying image exists on Docker Hub..."
-          IMAGE_USER=$(echo "$DOCKER_IMAGE" | cut -d'/' -f1)
-          IMAGE_REPO=$(echo "$DOCKER_IMAGE" | cut -d'/' -f2 | cut -d':' -f1)
-          IMAGE_TAG=$(echo "$DOCKER_IMAGE" | cut -d':' -f2)
-          
-          # Check if image exists via Docker Hub API
-          if curl -s -f "https://hub.docker.com/v2/repositories/${IMAGE_USER}/${IMAGE_REPO}/tags/${IMAGE_TAG}" > /dev/null; then
-            echo "✅ Image verified on Docker Hub: $DOCKER_IMAGE"
+          # Check if service exists
+          echo "🔍 Checking if service exists..."
+          if koyeb service get nemotron-3-inference/nemotron > /dev/null 2>&1; then
+            echo "✅ Service exists, updating..."
+            koyeb service update nemotron-3-inference/nemotron \
+              --docker "$DOCKER_IMAGE" \
+              --docker-entrypoint "" \
+              --docker-command ""
+            echo "✅ Service updated successfully!"
           else
-            echo "⚠️  Could not verify image via API, but continuing anyway..."
+            echo "📝 Creating new service..."
+            # First ensure app exists
+            koyeb app get nemotron-3-inference > /dev/null 2>&1 || koyeb app create nemotron-3-inference
+            
+            # Create service with H100 GPU (required for FP8 quantization - compute capability 89+)
+            # A100 (capability 80) does NOT support ModelOpt FP8 quantization
+            koyeb service create nemotron \
+              --app nemotron-3-inference \
+              --docker "$DOCKER_IMAGE" \
+              --instance-type gpu-nvidia-h100 \
+              --regions was \
+              --ports 8000:http \
+              --routes /:8000 \
+              --checks 8000:http:/health \
+              --env "HF_TOKEN=@hf-token" \
+              --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
+              --min-scale 0 \
+              --max-scale 1
+            echo "✅ Service created successfully!"
           fi
           
-          # Wait a moment for Docker Hub to propagate the image (if just built)
-          echo "⏳ Waiting 20 seconds for Docker Hub image propagation..."
-          sleep 20
-          
-          # Check if app exists, create if not
-          echo "📦 Checking for app nemotron-3-inference..."
-          if koyeb app get nemotron-3-inference > /dev/null 2>&1; then
-            echo "✓ App exists"
-          else
-            echo "📝 Creating app nemotron-3-inference..."
-            koyeb app create nemotron-3-inference || {
-              echo "❌ Failed to create app"
-              exit 1
-            }
-          fi
-
-          # Deploy using Koyeb REST API (more reliable than CLI for image validation)
-          echo "🚀 Deploying service via Koyeb API..."
-          
-          # Get app ID
-          APP_ID=$(koyeb app get nemotron-3-inference -o json 2>/dev/null | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4 || echo "")
-          
-          if [ -z "$APP_ID" ]; then
-            echo "❌ Could not get app ID for nemotron-3-inference"
-            exit 1
-          fi
-          
-          echo "📦 App ID: $APP_ID"
-          
-          # Check if service exists and get its ID
-          SERVICE_ID=$(koyeb service get nemotron-3-inference/nemotron -o json 2>/dev/null | grep -o '"id":"[^"]*' | head -1 | cut -d'"' -f4 || echo "")
-          
-          # Prepare service definition JSON
-          SERVICE_DEF=$(cat <<EOF
-{
-  "definition": {
-    "name": "nemotron",
-    "docker": {
-      "image": "docker.io/$DOCKER_IMAGE"
-    },
-    "instance_types": [{"type": "gpu-nvidia-a100"}],
-    "regions": ["sfo"],
-    "ports": [{"port": 8000, "protocol": "http"}],
-    "routes": [{"path": "/", "port": 8000}],
-    "health_checks": [{
-      "http": {"path": "/health", "port": 8000},
-      "grace_period": 300,
-      "interval": 30,
-      "timeout": 10,
-      "restart_limit": 3
-    }],
-    "env": [
-      {"key": "HF_TOKEN", "secret": "hf-token"},
-      {"key": "VLLM_ATTENTION_BACKEND", "value": "FLASHINFER"}
-    ],
-    "scalings": [{
-      "min": 0,
-      "max": 1,
-      "targets": [
-        {"requests_per_second": {"value": 10}},
-        {"sleep_idle_delay": {"value": 900}}
-      ]
-    }]
-  }
-}
-EOF
-)
-          
-          if [ -n "$SERVICE_ID" ]; then
-            echo "📝 Service exists (ID: $SERVICE_ID), updating via API..."
-            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://app.koyeb.com/v1/services/$SERVICE_ID" \
-              -H "Authorization: Bearer $KOYEB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$SERVICE_DEF")
-            
-            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-            BODY=$(echo "$RESPONSE" | head -n -1)
-            
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-              echo "✅ Service updated successfully"
-            else
-              echo "⚠️  API update returned HTTP $HTTP_CODE"
-              echo "Response: $BODY"
-              echo "Falling back to CLI..."
-              koyeb service update nemotron-3-inference/nemotron \
-                --docker "$DOCKER_IMAGE" \
-                --instance-type gpu-nvidia-a100 \
-                --regions sfo \
-                --ports 8000:http \
-                --routes /:8000 \
-                --checks 8000:http:/health \
-                --env "HF_TOKEN=@hf-token" \
-                --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
-                --min-scale 0 \
-                --max-scale 1
-            fi
-          else
-            echo "📝 Creating new service via API..."
-            # Add app_id to service definition (using sed if jq not available)
-            if command -v jq &> /dev/null; then
-              SERVICE_DEF_WITH_APP=$(echo "$SERVICE_DEF" | jq ". + {\"app_id\": \"$APP_ID\"}")
-            else
-              # Fallback: manually construct JSON
-              SERVICE_DEF_WITH_APP=$(echo "$SERVICE_DEF" | sed "s|^{|{\"app_id\": \"$APP_ID\",|")
-            fi
-            
-            RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "https://app.koyeb.com/v1/services" \
-              -H "Authorization: Bearer $KOYEB_TOKEN" \
-              -H "Content-Type: application/json" \
-              -d "$SERVICE_DEF_WITH_APP")
-            
-            HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-            BODY=$(echo "$RESPONSE" | head -n -1)
-            
-            if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-              echo "✅ Service created successfully via API"
-            else
-              echo "⚠️  API create returned HTTP $HTTP_CODE"
-              echo "Response: $BODY"
-              echo ""
-              echo "💡 GPU instances may not be available in the selected region."
-              echo "   Please create the service manually via Koyeb dashboard:"
-              echo "   1. Go to https://app.koyeb.com/apps/nemotron-3-inference"
-              echo "   2. Click 'Create Service'"
-              echo "   3. Use image: $DOCKER_IMAGE"
-              echo "   4. Select GPU instance type available in your region"
-              echo "   5. Then this workflow can update it automatically"
-              exit 1
-            fi
-          fi
-          
-          echo "✅ Deployment complete!"
-
+          echo "🎉 Deployment complete!"

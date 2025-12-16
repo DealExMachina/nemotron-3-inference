@@ -20,14 +20,15 @@ definition:
       value: FLASHINFER
 
   # GPU instance configuration
-  # Options: gpu-nvidia-l4, gpu-nvidia-l40s, gpu-nvidia-a100, gpu-nvidia-h100
+  # IMPORTANT: FP8 quantization requires compute capability 89+
+  # A100 (capability 80) does NOT work - use H100 (90) or L40S (89)
   instance_types:
-    - type: gpu-nvidia-a100
+    - type: gpu-nvidia-h100
 
   # Deployment regions
   # GPU availability varies by region
   regions:
-    - fra  # Frankfurt - good GPU availability
+    - sfo  # San Francisco - GPU availability
 
   # Port configuration
   ports:
