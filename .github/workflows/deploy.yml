@@ -117,7 +117,6 @@ jobs:
             echo "📝 Updating existing service..."
             koyeb service update nemotron-3-inference/nemotron \
               --docker "${{ env.IMAGE_NAME }}:latest" \
-              --docker-private-registry-secret dockerhub-secret \
               --instance-type gpu-nvidia-a100 \
               --regions fra \
               --ports 8000:http \
@@ -132,7 +131,6 @@ jobs:
             koyeb service create nemotron \
               --app nemotron-3-inference \
               --docker "${{ env.IMAGE_NAME }}:latest" \
-              --docker-private-registry-secret dockerhub-secret \
               --instance-type gpu-nvidia-a100 \
               --regions fra \
               --ports 8000:http \
