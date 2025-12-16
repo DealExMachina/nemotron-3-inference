@@ -75,36 +75,79 @@ jobs:
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
       - name: Deploy to Koyeb
-        env:
-          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
+          # Get and clean the token (remove quotes and whitespace)
+          KOYEB_TOKEN="${{ secrets.KOYEB_API_TOKEN }}"
+          
+          # Verify token is set
+          if [ -z "$KOYEB_TOKEN" ]; then
+            echo "❌ KOYEB_API_TOKEN secret is not set"
+            exit 1
+          fi
+          
+          # Remove single quotes, double quotes, and all whitespace
+          KOYEB_TOKEN=$(echo "$KOYEB_TOKEN" | sed "s/^['\"]//; s/['\"]$//" | tr -d '\r\n\t ' | xargs)
+          
+          # Export cleaned token
+          export KOYEB_TOKEN
+          
+          # Verify token is not empty after cleaning
+          if [ -z "$KOYEB_TOKEN" ]; then
+            echo "❌ Token is empty after cleaning"
+            exit 1
+          fi
+          
+          # Authenticate with Koyeb
+          echo "🔐 Authenticating with Koyeb..."
+          koyeb auth login --token "$KOYEB_TOKEN" || {
+            echo "❌ Failed to authenticate with Koyeb"
+            exit 1
+          }
+          
           # Check if app exists, create if not
-          koyeb app get nemotron-3-inference || koyeb app create nemotron-3-inference
+          echo "📦 Checking for app nemotron-3-inference..."
+          if koyeb app get nemotron-3-inference > /dev/null 2>&1; then
+            echo "✓ App exists"
+          else
+            echo "📝 Creating app nemotron-3-inference..."
+            koyeb app create nemotron-3-inference || {
+              echo "❌ Failed to create app"
+              exit 1
+            }
+          fi
 
           # Deploy or update the service
-          koyeb service update nemotron-3-inference/nemotron \
-            --docker "${{ env.IMAGE_NAME }}:latest" \
-            --docker-private-registry-secret dockerhub-secret \
-            --instance-type gpu-nvidia-a100 \
-            --regions fra \
-            --ports 8000:http \
-            --routes /:8000 \
-            --checks 8000:http:/health \
-            --env "HF_TOKEN=@hf-token" \
-            --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
-            --min-scale 0 \
-            --max-scale 1 \
-          || koyeb service create nemotron \
-            --app nemotron-3-inference \
-            --docker "${{ env.IMAGE_NAME }}:latest" \
-            --docker-private-registry-secret dockerhub-secret \
-            --instance-type gpu-nvidia-a100 \
-            --regions fra \
-            --ports 8000:http \
-            --routes /:8000 \
-            --checks 8000:http:/health \
-            --env "HF_TOKEN=@hf-token" \
-            --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
-            --min-scale 0 \
-            --max-scale 1
+          echo "🚀 Deploying service..."
+          if koyeb service get nemotron-3-inference/nemotron > /dev/null 2>&1; then
+            echo "📝 Updating existing service..."
+            koyeb service update nemotron-3-inference/nemotron \
+              --docker "${{ env.IMAGE_NAME }}:latest" \
+              --docker-private-registry-secret dockerhub-secret \
+              --instance-type gpu-nvidia-a100 \
+              --regions fra \
+              --ports 8000:http \
+              --routes /:8000 \
+              --checks 8000:http:/health \
+              --env "HF_TOKEN=@hf-token" \
+              --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
+              --min-scale 0 \
+              --max-scale 1
+          else
+            echo "📝 Creating new service..."
+            koyeb service create nemotron \
+              --app nemotron-3-inference \
+              --docker "${{ env.IMAGE_NAME }}:latest" \
+              --docker-private-registry-secret dockerhub-secret \
+              --instance-type gpu-nvidia-a100 \
+              --regions fra \
+              --ports 8000:http \
+              --routes /:8000 \
+              --checks 8000:http:/health \
+              --env "HF_TOKEN=@hf-token" \
+              --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
+              --min-scale 0 \
+              --max-scale 1
+          fi
+          
+          echo "✅ Deployment complete!"
 
