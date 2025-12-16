@@ -1,0 +1,66 @@
+# Koyeb Service Configuration for Nemotron 3 Nano
+# Deploy with: koyeb service create -f koyeb.yaml
+
+name: nemotron-3-inference
+type: WEB
+
+definition:
+  name: nemotron
+  
+  # Docker image configuration
+  # Replace YOUR_DOCKERHUB_USERNAME with your Docker Hub username
+  docker:
+    image: docker.io/YOUR_DOCKERHUB_USERNAME/nemotron-3-inference:latest
+    # If using a private registry, specify the secret name
+    image_registry_secret: dockerhub-secret
+
+  # Environment variables
+  env:
+    - key: HF_TOKEN
+      secret: hf-token
+    - key: VLLM_ATTENTION_BACKEND
+      value: FLASHINFER
+
+  # GPU instance configuration
+  # Options: gpu-nvidia-l4, gpu-nvidia-l40s, gpu-nvidia-a100, gpu-nvidia-h100
+  instance_types:
+    - type: gpu-nvidia-a100
+
+  # Deployment regions
+  # GPU availability varies by region
+  regions:
+    - fra  # Frankfurt - good GPU availability
+
+  # Port configuration
+  ports:
+    - port: 8000
+      protocol: http
+
+  # Route configuration
+  routes:
+    - path: /
+      port: 8000
+
+  # Health check configuration
+  health_checks:
+    - http:
+        path: /health
+        port: 8000
+      grace_period: 300  # 5 minutes - model loading takes time
+      interval: 30
+      timeout: 10
+      restart_limit: 3
+
+  # Scaling configuration
+  # min: 0 enables scale-to-zero for cost savings
+  # max: 1 for single instance (GPU models are expensive)
+  scalings:
+    - min: 0
+      max: 1
+      targets:
+        - requests_per_second:
+            value: 10
+        # Scale to zero after 15 minutes of idle
+        - sleep_idle_delay:
+            value: 900
+
