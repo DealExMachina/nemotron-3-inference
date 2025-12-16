@@ -99,17 +99,27 @@ jobs:
           
           echo "🔐 Using Koyeb API token (CLI reads KOYEB_TOKEN from environment)"
           
-          # Use the explicit image name with latest tag (without docker.io prefix for public images)
+          # Use the explicit image name with latest tag
+          # Try without docker.io prefix first (Koyeb may prefer this format)
           DOCKER_IMAGE="${{ env.IMAGE_NAME }}:latest"
           echo "📦 Using Docker image: $DOCKER_IMAGE"
           
-          # Verify the image format (Koyeb accepts both with and without docker.io prefix)
-          # For public images, we can use just the image name
-          echo "🔍 Image will be pulled from: docker.io/$DOCKER_IMAGE"
+          # Verify image exists on Docker Hub before deploying
+          echo "🔍 Verifying image exists on Docker Hub..."
+          IMAGE_USER=$(echo "$DOCKER_IMAGE" | cut -d'/' -f1)
+          IMAGE_REPO=$(echo "$DOCKER_IMAGE" | cut -d'/' -f2 | cut -d':' -f1)
+          IMAGE_TAG=$(echo "$DOCKER_IMAGE" | cut -d':' -f2)
+          
+          # Check if image exists via Docker Hub API
+          if curl -s -f "https://hub.docker.com/v2/repositories/${IMAGE_USER}/${IMAGE_REPO}/tags/${IMAGE_TAG}" > /dev/null; then
+            echo "✅ Image verified on Docker Hub: $DOCKER_IMAGE"
+          else
+            echo "⚠️  Could not verify image via API, but continuing anyway..."
+          fi
           
           # Wait a moment for Docker Hub to propagate the image (if just built)
-          echo "⏳ Waiting 15 seconds for Docker Hub image propagation..."
-          sleep 15
+          echo "⏳ Waiting 20 seconds for Docker Hub image propagation..."
+          sleep 20
           
           # Check if app exists, create if not
           echo "📦 Checking for app nemotron-3-inference..."
@@ -123,36 +133,50 @@ jobs:
             }
           fi
 
-          # Deploy or update the service
-          echo "🚀 Deploying service with image: $DOCKER_IMAGE"
+          # Deploy using koyeb.yaml file (might handle image validation better)
+          echo "🚀 Deploying service using koyeb.yaml..."
+          
+          # Update the image in koyeb.yaml temporarily
+          sed -i.bak "s|image:.*|image: $DOCKER_IMAGE|" koyeb.yaml
+          
+          # Deploy using the YAML file
           if koyeb service get nemotron-3-inference/nemotron > /dev/null 2>&1; then
-            echo "📝 Updating existing service..."
-            koyeb service update nemotron-3-inference/nemotron \
-              --docker "$DOCKER_IMAGE" \
-              --instance-type gpu-nvidia-a100 \
-              --regions fra \
-              --ports 8000:http \
-              --routes /:8000 \
-              --checks 8000:http:/health \
-              --env "HF_TOKEN=@hf-token" \
-              --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
-              --min-scale 0 \
-              --max-scale 1
+            echo "📝 Updating existing service from koyeb.yaml..."
+            koyeb service update nemotron-3-inference/nemotron -f koyeb.yaml || {
+              echo "⚠️  YAML update failed, trying CLI method..."
+              koyeb service update nemotron-3-inference/nemotron \
+                --docker "$DOCKER_IMAGE" \
+                --instance-type gpu-nvidia-a100 \
+                --regions fra \
+                --ports 8000:http \
+                --routes /:8000 \
+                --checks 8000:http:/health \
+                --env "HF_TOKEN=@hf-token" \
+                --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
+                --min-scale 0 \
+                --max-scale 1
+            }
           else
-            echo "📝 Creating new service..."
-            koyeb service create nemotron \
-              --app nemotron-3-inference \
-              --docker "$DOCKER_IMAGE" \
-              --instance-type gpu-nvidia-a100 \
-              --regions fra \
-              --ports 8000:http \
-              --routes /:8000 \
-              --checks 8000:http:/health \
-              --env "HF_TOKEN=@hf-token" \
-              --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
-              --min-scale 0 \
-              --max-scale 1
+            echo "📝 Creating new service from koyeb.yaml..."
+            koyeb service create -f koyeb.yaml || {
+              echo "⚠️  YAML create failed, trying CLI method..."
+              koyeb service create nemotron \
+                --app nemotron-3-inference \
+                --docker "$DOCKER_IMAGE" \
+                --instance-type gpu-nvidia-a100 \
+                --regions fra \
+                --ports 8000:http \
+                --routes /:8000 \
+                --checks 8000:http:/health \
+                --env "HF_TOKEN=@hf-token" \
+                --env "VLLM_ATTENTION_BACKEND=FLASHINFER" \
+                --min-scale 0 \
+                --max-scale 1
+            }
           fi
+          
+          # Restore original koyeb.yaml
+          mv koyeb.yaml.bak koyeb.yaml 2>/dev/null || true
           
           echo "✅ Deployment complete!"
 
