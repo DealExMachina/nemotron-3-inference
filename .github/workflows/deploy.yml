@@ -75,6 +75,8 @@ jobs:
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
 
       - name: Deploy to Koyeb
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
           # Get and clean the token (remove quotes and whitespace)
           KOYEB_TOKEN="${{ secrets.KOYEB_API_TOKEN }}"
@@ -88,7 +90,7 @@ jobs:
           # Remove single quotes, double quotes, and all whitespace
           KOYEB_TOKEN=$(echo "$KOYEB_TOKEN" | sed "s/^['\"]//; s/['\"]$//" | tr -d '\r\n\t ' | xargs)
           
-          # Export cleaned token
+          # Export cleaned token (Koyeb CLI reads KOYEB_TOKEN from environment)
           export KOYEB_TOKEN
           
           # Verify token is not empty after cleaning
@@ -97,12 +99,8 @@ jobs:
             exit 1
           fi
           
-          # Authenticate with Koyeb
-          echo "🔐 Authenticating with Koyeb..."
-          koyeb auth login --token "$KOYEB_TOKEN" || {
-            echo "❌ Failed to authenticate with Koyeb"
-            exit 1
-          }
+          # Koyeb CLI automatically uses KOYEB_TOKEN from environment
+          echo "🔐 Using Koyeb API token (CLI reads KOYEB_TOKEN automatically)"
           
           # Check if app exists, create if not
           echo "📦 Checking for app nemotron-3-inference..."
