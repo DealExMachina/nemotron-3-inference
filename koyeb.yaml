@@ -8,11 +8,9 @@ definition:
   name: nemotron
   
   # Docker image configuration
-  # Replace YOUR_DOCKERHUB_USERNAME with your Docker Hub username
+  # Public Docker Hub image - no registry secret needed
   docker:
-    image: docker.io/YOUR_DOCKERHUB_USERNAME/nemotron-3-inference:latest
-    # If using a private registry, specify the secret name
-    image_registry_secret: dockerhub-secret
+    image: jeanbapt/nemotron-3-inference:latest
 
   # Environment variables
   env:
