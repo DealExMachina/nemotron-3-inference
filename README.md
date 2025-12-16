@@ -1,5 +1,12 @@
 # Nemotron 3 Nano Inference on Koyeb
 
+[![License](https://img.shields.io/badge/License-NVIDIA_Open_Model-green.svg)](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8/blob/main/LICENSE)
+[![Model](https://img.shields.io/badge/HuggingFace-Nemotron--3--Nano-yellow.svg)](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8)
+[![vLLM](https://img.shields.io/badge/Inference-vLLM_v0.12-blue.svg)](https://docs.vllm.ai/)
+[![Deploy](https://img.shields.io/badge/Deploy-Koyeb-purple.svg)](https://www.koyeb.com/)
+[![Docker](https://img.shields.io/badge/Docker-AMD64-2496ED.svg)](https://hub.docker.com/)
+[![CI](https://github.com/DealExMachina/nemotron-3-inference/actions/workflows/deploy.yml/badge.svg)](https://github.com/DealExMachina/nemotron-3-inference/actions)
+
 Deploy [NVIDIA Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) on Koyeb using vLLM with an OpenAI-compatible API.
 
 ## Model Overview
@@ -262,12 +269,30 @@ Model loading takes 2-5 minutes. The health check has a 5-minute grace period.
 
 ## References
 
-- [Nemotron 3 Nano Blog Post](https://huggingface.co/blog/nvidia/nemotron-3-nano-efficient-open-intelligent-models)
-- [vLLM Nemotron Cookbook](https://docs.vllm.ai/projects/recipes/en/latest/NVIDIA/Nemotron-3-Nano-30B-A3B.html)
-- [vLLM Blog Post](https://blog.vllm.ai/2025/12/15/run-nvidia-nemotron-3-nano.html)
-- [Model Card on Hugging Face](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8)
-- [Koyeb GPU Documentation](https://www.koyeb.com/docs/reference/instances#gpu-instances)
+### Model Documentation
+
+| Resource | Description |
+|----------|-------------|
+| [Nemotron 3 Nano Blog Post](https://huggingface.co/blog/nvidia/nemotron-3-nano-efficient-open-intelligent-models) | Official NVIDIA announcement with architecture details |
+| [Model Card](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) | Hugging Face model page with weights and documentation |
+| [Technical Report](https://arxiv.org/abs/2506.11572) | Full technical details on training and architecture |
+
+### Deployment Guides
+
+| Resource | Description |
+|----------|-------------|
+| [vLLM Nemotron Cookbook](https://docs.vllm.ai/projects/recipes/en/latest/NVIDIA/Nemotron-3-Nano-30B-A3B.html) | Official vLLM deployment guide |
+| [vLLM Blog Post](https://blog.vllm.ai/2025/12/15/run-nvidia-nemotron-3-nano.html) | vLLM team guide for running Nemotron |
+| [Koyeb GPU Documentation](https://www.koyeb.com/docs/reference/instances#gpu-instances) | Koyeb GPU instance specifications |
+
+### Related Projects
+
+| Project | Description |
+|---------|-------------|
+| [vLLM](https://github.com/vllm-project/vllm) | High-throughput LLM serving engine |
+| [SGLang](https://github.com/sgl-project/sglang) | Alternative serving framework with Nemotron support |
+| [OpenRouter](https://openrouter.ai/) | Hosted API access to Nemotron models |
 
 ## License
 
-The Nemotron model is licensed under the [NVIDIA Open Model License](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8/blob/main/LICENSE).
+The Nemotron model is released under the [NVIDIA Open Model License](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8/blob/main/LICENSE), which permits commercial use, modification, and redistribution.
