@@ -109,8 +109,12 @@ jobs:
       - name: 🔑 Configure Koyeb auth (non-interactive)
         run: |
           mkdir -p ~/.koyeb
-          echo "token: $KOYEB_API_TOKEN" > ~/.koyeb.yaml
-          koyeb version
+          # Remove any newlines/whitespace from token
+          TOKEN=$(echo -n "$KOYEB_API_TOKEN" | tr -d '\n\r ')
+          echo "token: $TOKEN" > ~/.koyeb.yaml
+          chmod 600 ~/.koyeb.yaml
+          # Verify auth works
+          koyeb organization list
 
       - name: 🚀 Deploy to Koyeb
         run: |
@@ -185,8 +189,12 @@ jobs:
       - name: 🔑 Configure Koyeb auth (non-interactive)
         run: |
           mkdir -p ~/.koyeb
-          echo "token: $KOYEB_API_TOKEN" > ~/.koyeb.yaml
-          koyeb version
+          # Remove any newlines/whitespace from token
+          TOKEN=$(echo -n "$KOYEB_API_TOKEN" | tr -d '\n\r ')
+          echo "token: $TOKEN" > ~/.koyeb.yaml
+          chmod 600 ~/.koyeb.yaml
+          # Verify auth works
+          koyeb organization list
 
       - name: 🚀 Redeploy to Koyeb
         run: |
