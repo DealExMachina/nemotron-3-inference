@@ -98,11 +98,29 @@ jobs:
         env:
           KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
-          # Install Koyeb CLI
-          curl -fsSL https://get.koyeb.com | sh
+          # Install Koyeb CLI with retries
+          echo "📦 Installing Koyeb CLI..."
+          for i in 1 2 3; do
+            echo "Attempt $i/3..."
+            if curl -fsSL --retry 3 --retry-delay 5 https://get.koyeb.com | sh; then
+              echo "✅ CLI installed successfully"
+              break
+            fi
+            echo "⚠️ Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
           
           # Add to PATH
           export PATH="$HOME/.koyeb/bin:$PATH"
+          
+          # Verify installation
+          if ! command -v koyeb &> /dev/null; then
+            echo "❌ Koyeb CLI not found, trying direct download..."
+            mkdir -p "$HOME/.koyeb/bin"
+            curl -fsSL --retry 3 -o "$HOME/.koyeb/bin/koyeb" \
+              "https://github.com/koyeb/koyeb-cli/releases/latest/download/koyeb_linux_amd64"
+            chmod +x "$HOME/.koyeb/bin/koyeb"
+          fi
           
           # Authenticate
           koyeb login --token "$KOYEB_TOKEN"
@@ -193,11 +211,29 @@ jobs:
         env:
           KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
-          # Install Koyeb CLI
-          curl -fsSL https://get.koyeb.com | sh
+          # Install Koyeb CLI with retries
+          echo "📦 Installing Koyeb CLI..."
+          for i in 1 2 3; do
+            echo "Attempt $i/3..."
+            if curl -fsSL --retry 3 --retry-delay 5 https://get.koyeb.com | sh; then
+              echo "✅ CLI installed successfully"
+              break
+            fi
+            echo "⚠️ Attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
           
           # Add to PATH
           export PATH="$HOME/.koyeb/bin:$PATH"
+          
+          # Verify installation
+          if ! command -v koyeb &> /dev/null; then
+            echo "❌ Koyeb CLI not found, trying direct download..."
+            mkdir -p "$HOME/.koyeb/bin"
+            curl -fsSL --retry 3 -o "$HOME/.koyeb/bin/koyeb" \
+              "https://github.com/koyeb/koyeb-cli/releases/latest/download/koyeb_linux_amd64"
+            chmod +x "$HOME/.koyeb/bin/koyeb"
+          fi
           
           # Authenticate
           koyeb login --token "$KOYEB_TOKEN"
