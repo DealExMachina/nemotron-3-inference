@@ -91,6 +91,8 @@ jobs:
     environment:
       name: production
       url: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app
+    env:
+      KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
 
     steps:
       - name: 🔧 Install Koyeb CLI
@@ -98,27 +100,25 @@ jobs:
           set -e
           echo "📦 Installing Koyeb CLI from GitHub releases..."
           
-          # Get latest version
           LATEST=$(curl -fsSL https://api.github.com/repos/koyeb/koyeb-cli/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
           VERSION=${LATEST#v}
           echo "📌 Latest version: $VERSION"
           
-          # Download and extract
           mkdir -p "$HOME/.koyeb/bin"
           curl -fsSL "https://github.com/koyeb/koyeb-cli/releases/download/${LATEST}/koyeb-cli_${VERSION}_linux_amd64.tar.gz" \
             | tar -xzf - -C "$HOME/.koyeb/bin"
           
           chmod +x "$HOME/.koyeb/bin/koyeb"
-          
-          # Add to PATH for subsequent steps
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
           
-          # Verify
           "$HOME/.koyeb/bin/koyeb" version
-          echo "✅ Koyeb CLI installed successfully"
+          echo "✅ Koyeb CLI installed"
 
-      - name: 🔑 Authenticate with Koyeb
-        run: koyeb login --token "${{ secrets.KOYEB_API_TOKEN }}"
+      - name: 🔑 Configure Koyeb credentials
+        run: |
+          echo "token: $KOYEB_TOKEN" > ~/.koyeb.yaml
+          koyeb organization list
+          echo "✅ Authenticated with Koyeb"
 
       - name: 🚀 Deploy to Koyeb
         run: |
@@ -175,6 +175,8 @@ jobs:
     environment:
       name: production
       url: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app
+    env:
+      KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
 
     steps:
       - name: 🔧 Install Koyeb CLI
@@ -194,10 +196,13 @@ jobs:
           echo "$HOME/.koyeb/bin" >> $GITHUB_PATH
           
           "$HOME/.koyeb/bin/koyeb" version
-          echo "✅ Koyeb CLI installed successfully"
+          echo "✅ Koyeb CLI installed"
 
-      - name: 🔑 Authenticate with Koyeb
-        run: koyeb login --token "${{ secrets.KOYEB_API_TOKEN }}"
+      - name: 🔑 Configure Koyeb credentials
+        run: |
+          echo "token: $KOYEB_TOKEN" > ~/.koyeb.yaml
+          koyeb organization list
+          echo "✅ Authenticated with Koyeb"
 
       - name: 🚀 Redeploy to Koyeb
         run: |
