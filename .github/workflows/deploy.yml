@@ -114,12 +114,6 @@ jobs:
           "$HOME/.koyeb/bin/koyeb" version
           echo "✅ Koyeb CLI installed"
 
-      - name: 🔑 Configure Koyeb credentials
-        run: |
-          echo "token: $KOYEB_TOKEN" > ~/.koyeb.yaml
-          koyeb organization list
-          echo "✅ Authenticated with Koyeb"
-
       - name: 🚀 Deploy to Koyeb
         run: |
           APP_NAME="${{ env.KOYEB_APP_NAME }}"
@@ -197,12 +191,6 @@ jobs:
           
           "$HOME/.koyeb/bin/koyeb" version
           echo "✅ Koyeb CLI installed"
-
-      - name: 🔑 Configure Koyeb credentials
-        run: |
-          echo "token: $KOYEB_TOKEN" > ~/.koyeb.yaml
-          koyeb organization list
-          echo "✅ Authenticated with Koyeb"
 
       - name: 🚀 Redeploy to Koyeb
         run: |
