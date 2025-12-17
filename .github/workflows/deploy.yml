@@ -114,7 +114,7 @@ jobs:
           echo "📦 Deploying image: $IMAGE"
           echo "📍 App: $APP_NAME / Service: $SVC_NAME"
           
-          koyeb services update $SVC_NAME --app $APP_NAME --image "$IMAGE"
+          koyeb services update "$APP_NAME/$SVC_NAME" --docker-image "$IMAGE"
           
           echo "✅ Service update triggered!"
 
@@ -169,9 +169,8 @@ jobs:
           IMAGE="${{ env.IMAGE_NAME }}:latest"
           echo "📦 Redeploying with image: $IMAGE"
           
-          koyeb services update ${{ env.KOYEB_SERVICE_NAME }} \
-            --app ${{ env.KOYEB_APP_NAME }} \
-            --image "$IMAGE"
+          koyeb services update "${{ env.KOYEB_APP_NAME }}/${{ env.KOYEB_SERVICE_NAME }}" \
+            --docker-image "$IMAGE"
           
           echo "✅ Redeployment triggered!"
           echo "🔗 URL: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app"
