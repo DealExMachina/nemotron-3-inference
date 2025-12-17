@@ -94,13 +94,20 @@ jobs:
       url: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app
 
     steps:
-      - name: 🔧 Install Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: ${{ secrets.KOYEB_API_TOKEN }}
-
-      - name: 🚀 Deploy to Koyeb
+      - name: 🔧 Install Koyeb CLI and Deploy
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
+          # Install Koyeb CLI
+          curl -fsSL https://get.koyeb.com | sh
+          
+          # Add to PATH
+          export PATH="$HOME/.koyeb/bin:$PATH"
+          
+          # Authenticate
+          koyeb login --token "$KOYEB_TOKEN"
+          
+          # Set variables
           APP_NAME="${{ env.KOYEB_APP_NAME }}"
           SVC_NAME="${{ env.KOYEB_SERVICE_NAME }}"
           
@@ -161,7 +168,7 @@ jobs:
           - **App**: \`${{ env.KOYEB_APP_NAME }}\`
           - **Service**: \`${{ env.KOYEB_SERVICE_NAME }}\`
           - **Instance**: GPU NVIDIA H100
-          - **Region**: Washington D.C.
+          - **Region**: North America
           
           ### 🔗 URLs
           - **Service**: [https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app](https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app)
@@ -182,13 +189,20 @@ jobs:
       url: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app
 
     steps:
-      - name: 🔧 Install Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: ${{ secrets.KOYEB_API_TOKEN }}
-
-      - name: 🚀 Redeploy to Koyeb
+      - name: 🔧 Install Koyeb CLI and Redeploy
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
+          # Install Koyeb CLI
+          curl -fsSL https://get.koyeb.com | sh
+          
+          # Add to PATH
+          export PATH="$HOME/.koyeb/bin:$PATH"
+          
+          # Authenticate
+          koyeb login --token "$KOYEB_TOKEN"
+          
+          # Set variables
           APP_NAME="${{ env.KOYEB_APP_NAME }}"
           SVC_NAME="${{ env.KOYEB_SERVICE_NAME }}"
           IMAGE="${{ env.IMAGE_NAME }}:latest"
