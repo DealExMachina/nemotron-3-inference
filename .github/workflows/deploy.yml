@@ -101,10 +101,16 @@ jobs:
         with:
           api_token: ${{ secrets.KOYEB_API_TOKEN }}
 
+      - name: 🔍 Verify Koyeb CLI
+        run: |
+          which koyeb || (echo "$HOME/.koyeb/bin" >> $GITHUB_PATH && export PATH="$HOME/.koyeb/bin:$PATH")
+          koyeb version
+
       - name: 🔑 Configure Koyeb auth (non-interactive)
         run: |
           mkdir -p ~/.koyeb
           echo "token: $KOYEB_API_TOKEN" > ~/.koyeb.yaml
+          koyeb version
 
       - name: 🚀 Deploy to Koyeb
         run: |
@@ -171,10 +177,16 @@ jobs:
         with:
           api_token: ${{ secrets.KOYEB_API_TOKEN }}
 
+      - name: 🔍 Verify Koyeb CLI
+        run: |
+          which koyeb || (echo "$HOME/.koyeb/bin" >> $GITHUB_PATH && export PATH="$HOME/.koyeb/bin:$PATH")
+          koyeb version
+
       - name: 🔑 Configure Koyeb auth (non-interactive)
         run: |
           mkdir -p ~/.koyeb
           echo "token: $KOYEB_API_TOKEN" > ~/.koyeb.yaml
+          koyeb version
 
       - name: 🚀 Redeploy to Koyeb
         run: |
