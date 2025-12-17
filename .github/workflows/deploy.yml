@@ -95,10 +95,9 @@ jobs:
 
     steps:
       - name: 🔧 Install Koyeb CLI
-        run: curl -fsSL https://get.koyeb.com | sh
-
-      - name: 🔑 Auth to Koyeb
-        run: koyeb login --token "${{ secrets.KOYEB_API_TOKEN }}"
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
 
       - name: 🚀 Deploy to Koyeb
         run: |
@@ -184,10 +183,9 @@ jobs:
 
     steps:
       - name: 🔧 Install Koyeb CLI
-        run: curl -fsSL https://get.koyeb.com | sh
-
-      - name: 🔑 Auth to Koyeb
-        run: koyeb login --token "${{ secrets.KOYEB_API_TOKEN }}"
+        uses: koyeb-community/koyeb-actions@v2
+        with:
+          api_token: ${{ secrets.KOYEB_API_TOKEN }}
 
       - name: 🚀 Redeploy to Koyeb
         run: |
