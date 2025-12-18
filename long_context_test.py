@@ -150,11 +150,15 @@ def test_needle_in_haystack(book_text: str, book_info: dict):
             
             answer = response.choices[0].message.content
             found = needle.split(": ")[1] if ": " in needle else needle
-            success = found.upper() in answer.upper()
             
             print(f"   ⏱️  Time: {elapsed:.2f}s")
-            print(f"   💬 Response: {answer}")
-            print(f"   {'✅ SUCCESS' if success else '❌ FAILED'}: Needle {'found' if success else 'not found'}")
+            if answer:
+                success = found.upper() in answer.upper()
+                print(f"   💬 Response: {answer}")
+                print(f"   {'✅ SUCCESS' if success else '❌ FAILED'}: Needle {'found' if success else 'not found'}")
+            else:
+                print(f"   ⚠️  Response: No content returned (empty response)")
+                print(f"   ❌ FAILED: No answer to check")
             
             if response.usage:
                 print(f"   📊 Tokens: {response.usage.total_tokens:,}")
@@ -200,7 +204,10 @@ def test_summarization(book_text: str, book_info: dict, max_tokens: int = 50000)
             
             answer = response.choices[0].message.content
             print(f"   ⏱️  Time: {elapsed:.2f}s")
-            print(f"   💬 Response: {answer}")
+            if answer:
+                print(f"   💬 Response: {answer}")
+            else:
+                print(f"   ⚠️  Response: No content returned (empty response)")
             
             if response.usage:
                 print(f"   📊 Input tokens: {response.usage.prompt_tokens:,}")
@@ -249,7 +256,10 @@ def test_specific_questions(book_text: str, book_info: dict, max_tokens: int = 5
             elapsed = time.time() - start
             
             answer = response.choices[0].message.content
-            print(f"   💬 Answer: {answer[:300]}{'...' if len(answer) > 300 else ''}")
+            if answer:
+                print(f"   💬 Answer: {answer[:300]}{'...' if len(answer) > 300 else ''}")
+            else:
+                print(f"   ⚠️  Answer: No content returned (empty response)")
             print(f"   ⏱️  Time: {elapsed:.2f}s")
             
             if response.usage:
@@ -295,7 +305,10 @@ def test_context_length_scaling():
             elapsed = time.time() - start
             
             answer = response.choices[0].message.content
-            print(f"   💬 Response: {answer}")
+            if answer:
+                print(f"   💬 Response: {answer}")
+            else:
+                print(f"   ⚠️  Response: No content returned (empty response)")
             print(f"   ⏱️  Time: {elapsed:.2f}s")
             
             if response.usage:

@@ -46,6 +46,9 @@ def print_result(response, elapsed_time: float, show_reasoning: bool = True):
             print(f"💬 Response: {content[:300]}...")
         else:
             print(f"💬 Response: {content}")
+    elif not message.tool_calls:
+        # Only show warning if there are no tool calls (tool calls don't have content)
+        print(f"⚠️  Response: No content (may be empty or tool-only response)")
     
     # Reasoning content (Nemotron specific - via deepseek_r1 parser)
     if show_reasoning and hasattr(message, 'reasoning_content') and message.reasoning_content:
@@ -444,11 +447,15 @@ def test_structured_output_basic():
             
             # Parse and validate JSON
             content = response.choices[0].message.content
-            try:
-                parsed = json.loads(content)
-                print(f"✅ Valid JSON: {json.dumps(parsed, indent=2)}")
-            except json.JSONDecodeError:
-                print(f"⚠️  Response: {content}")
+            if content is None:
+                print(f"⚠️  Response: No content returned (empty response)")
+            else:
+                try:
+                    parsed = json.loads(content)
+                    print(f"✅ Valid JSON: {json.dumps(parsed, indent=2)}")
+                except json.JSONDecodeError as je:
+                    print(f"⚠️  JSON Parse Error: {je}")
+                    print(f"   Response (first 500 chars): {content[:500]}...")
             
             print(f"⏱️  Time: {elapsed:.3f}s")
             if response.usage:
@@ -530,14 +537,20 @@ def test_structured_output_advanced():
             
             # Parse and validate with Pydantic
             content = response.choices[0].message.content
-            try:
-                parsed_json = json.loads(content)
-                validated = case['model'](**parsed_json)
-                print(f"✅ Valid {case['model'].__name__}:")
-                print(json.dumps(parsed_json, indent=2))
-            except Exception as validation_error:
-                print(f"⚠️  Validation error: {validation_error}")
-                print(f"   Raw response: {content}")
+            if content is None:
+                print(f"⚠️  Response: No content returned (empty response)")
+            else:
+                try:
+                    parsed_json = json.loads(content)
+                    validated = case['model'](**parsed_json)
+                    print(f"✅ Valid {case['model'].__name__}:")
+                    print(json.dumps(parsed_json, indent=2))
+                except json.JSONDecodeError as je:
+                    print(f"⚠️  JSON Parse Error: {je}")
+                    print(f"   Raw response (first 500 chars): {content[:500]}...")
+                except Exception as validation_error:
+                    print(f"⚠️  Validation error: {validation_error}")
+                    print(f"   Raw response (first 500 chars): {content[:500] if content else 'None'}...")
             
             print(f"⏱️  Time: {elapsed:.3f}s")
             if response.usage:
