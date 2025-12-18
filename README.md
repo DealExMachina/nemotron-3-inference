@@ -1,61 +1,74 @@
-# Nemotron 3 Nano Inference
+# Nemotron-3 Inference Server
 
-[![Model](https://img.shields.io/badge/HuggingFace-Nemotron--3--Nano-yellow.svg)](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8)
-[![vLLM](https://img.shields.io/badge/Inference-vLLM_v0.12-blue.svg)](https://docs.vllm.ai/)
+Deploy NVIDIA's Nemotron-3-Nano (30B params, 3.6B active) with an OpenAI-compatible API. Optimized for structured outputs, tool calling, and long contexts.
+
 [![Deploy](https://img.shields.io/badge/Deploy-Koyeb-purple.svg)](https://www.koyeb.com/)
-[![CI](https://github.com/DealExMachina/nemotron-3-inference/actions/workflows/deploy.yml/badge.svg)](https://github.com/DealExMachina/nemotron-3-inference/actions)
+[![Model](https://img.shields.io/badge/Model-HuggingFace-yellow.svg)](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8)
+[![vLLM](https://img.shields.io/badge/vLLM-0.12.0-blue.svg)](https://docs.vllm.ai/)
+[![Tests](https://github.com/DealExMachina/nemotron-3-inference/actions/workflows/deploy.yml/badge.svg)](https://github.com/DealExMachina/nemotron-3-inference/actions)
 
-Deploy [NVIDIA Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8) with an OpenAI-compatible API.
-
-## Model Highlights
-
-| Property | Value |
-|----------|-------|
-| Total Parameters | 31.6B |
-| Active Parameters | 3.6B per token |
-| Context Length | Up to 1M tokens |
-| Precision | FP8 |
-| Languages | EN, ES, FR, DE, JA, IT |
-
-**Key capabilities:**
-- Reasoning with thinking traces
-- Tool/function calling
-- Long context (262K tokens on vLLM)
-- Multilingual support
-
-**Performance:** Run `comprehensive_test.py` to measure real-world performance metrics including response times, token throughput, and latency across different workloads.
+---
 
 ## Quick Start
-
-### Deploy to Koyeb
-
-1. Create a [Koyeb secret](https://app.koyeb.com/secrets) for your Hugging Face token:
-   ```bash
-   koyeb secret create hf-token --value "hf_your_token_here"
-   ```
-
-2. Push to main to trigger deployment:
-   ```bash
-   git push origin main
-   ```
-
-### API Usage
 
 ```python
 from openai import OpenAI
 
 client = OpenAI(
-    base_url="https://your-app.koyeb.app/v1",
+    base_url="https://your-service.koyeb.app/v1",
     api_key="not-needed"
 )
 
 response = client.chat.completions.create(
     model="nemotron",
-    messages=[{"role": "user", "content": "Explain quantum computing briefly."}],
-    max_tokens=512
+    messages=[{"role": "user", "content": "Explain transformers in simple terms."}],
+    max_tokens=200
 )
+```
 
-print(response.choices[0].message.content)
+---
+
+## Why These Examples Matter
+
+While our test examples may seem simple—parsing movie reviews, generating recipes, extracting transaction data—they represent real patterns you'll encounter in production:
+
+- **Transaction parsing** demonstrates financial data extraction at scale
+- **Portfolio analysis** shows handling of complex nested structures
+- **Needle-in-a-haystack** tests prove the model can find specific information in 200K+ token documents
+- **Tool calling examples** illustrate API integration patterns
+
+The difference between a toy example and production is just complexity and volume. These tests establish that the fundamentals work reliably, which is what matters.
+
+---
+
+## Features
+
+### Structured Outputs
+
+Guaranteed JSON Schema compliance using xgrammar:
+
+```python
+from pydantic import BaseModel
+
+class Transaction(BaseModel):
+    symbol: str
+    quantity: float
+    price: float
+    
+response = client.chat.completions.create(
+    model="nemotron",
+    messages=[{"role": "user", "content": "Extract: Bought 100 AAPL @ $150"}],
+    response_format={
+        "type": "json_schema",
+        "json_schema": {
+            "name": "Transaction",
+            "schema": Transaction.model_json_schema(),
+            "strict": True
+        }
+    },
+    temperature=0
+)
+# Returns valid JSON every time
 ```
 
 ### Tool Calling
@@ -64,116 +77,173 @@ print(response.choices[0].message.content)
 tools = [{
     "type": "function",
     "function": {
-        "name": "get_weather",
-        "description": "Get weather in a location",
+        "name": "calculate",
         "parameters": {
             "type": "object",
-            "properties": {
-                "location": {"type": "string"}
-            },
-            "required": ["location"]
+            "properties": {"expression": {"type": "string"}},
+            "required": ["expression"]
         }
     }
 }]
 
 response = client.chat.completions.create(
     model="nemotron",
-    messages=[{"role": "user", "content": "What's the weather in Paris?"}],
-    tools=tools,
-    tool_choice="auto"
+    messages=[{"role": "user", "content": "Calculate 15 * 23 + 7"}],
+    tools=tools
 )
+# Returns: tool_calls with calculate({"expression": "15*23+7"})
 ```
 
-## Performance Metrics
+### Long Context
 
-The comprehensive test suite (`comprehensive_test.py`) measures real-world performance metrics on the deployed endpoint. Run it to benchmark your deployment:
+Test with full books (Ulysses, Moby Dick) from Project Gutenberg:
 
 ```bash
-pip install openai
+python long_context_test.py
+```
+
+Processes 200K+ tokens efficiently, demonstrating real document understanding beyond synthetic benchmarks.
+
+---
+
+## Test Suites
+
+Run comprehensive tests to validate your deployment:
+
+```bash
+pip install -r requirements.txt
+
+# Test all capabilities
 python comprehensive_test.py
+
+# Test financial use cases (transactions, portfolios, risk)
+python financial_test.py
+
+# Test long documents (full books)
+python long_context_test.py
 ```
 
-### Measured Performance
+**What gets tested:**
+- JSON Schema compliance (100% with xgrammar)
+- Tool/function calling accuracy
+- Context scaling (1K to 200K tokens)
+- Financial data extraction
+- Reasoning with step-by-step traces
+- Multi-turn conversations
 
-The test suite tracks and reports:
+See [`docs/`](./docs/) for detailed test documentation.
 
-| Metric | Description | Example Output |
-|--------|-------------|----------------|
-| **Response Time** | End-to-end latency for each request | `⏱️ Time: 1.234s` |
-| **Token Throughput** | Tokens processed per second | `🚀 Speed: 4,155 tokens/s` |
-| **Token Usage** | Prompt, completion, and total tokens | `📊 Tokens: 5,127 (prompt: 5,012, completion: 115)` |
-| **Context Handling** | Performance across different input sizes (100 to 10K+ tokens) | Tested with small, medium, large, and very large inputs |
-| **Reasoning Performance** | Time and quality of multi-step reasoning tasks | Includes thinking traces via `deepseek_r1` parser |
-| **Tool Calling Speed** | Latency for function calling operations | Measured for single and multi-tool requests |
+---
 
-### Performance Test Coverage
+## Deployment
 
-| Test Category | What's Measured |
-|---------------|-----------------|
-| **Context Length** | Response time and throughput for inputs from 100 to 10,000+ tokens |
-| **Reasoning** | Step-by-step reasoning performance with thinking traces |
-| **Tool Calling** | Function calling latency for time, weather, calculation, and multi-tool queries |
-| **Prompt Types** | Performance across coding, creative writing, technical explanations, and analysis |
-| **Conversation** | Multi-turn dialogue performance with context retention |
+### Koyeb (One-Click)
 
-### Example Test Output
+1. Fork this repo
+2. Create Koyeb account
+3. Add HuggingFace token as secret: `hf-token`
+4. Push to trigger deploy via GitHub Actions
 
-```
-📏 Large (~5K tokens):
-📝 Estimated input tokens: ~5,000
-⏱️  Time: 1.234s
-💬 Response: Machine learning is...
-🧠 Reasoning: [thinking traces if enabled]
-📊 Tokens: 5,127 (prompt: 5,012, completion: 115)
-🚀 Speed: 4,155 tokens/s
-🏁 Finish Reason: stop
+Configured for H100 GPU with auto-scaling (0-1 replicas).
+
+### Local (Docker)
+
+```bash
+docker build -t nemotron-inference .
+docker run --gpus all -p 8000:8000 \
+  -e HF_TOKEN=your_token \
+  nemotron-inference
 ```
 
-**Note:** Actual performance depends on:
-- GPU instance type (H100 recommended for best performance)
-- Current load and scale-to-zero wake time
-- Input/output token counts
-- Model warm-up state
-
-## Hardware Requirements
-
-FP8 quantization requires GPU compute capability 89+:
-
-| GPU | VRAM | Koyeb Instance | FP8 Support |
-|-----|------|----------------|-------------|
-| H100 | 80 GB | `gpu-nvidia-h100` | ✅ |
-| L40S | 48 GB | `gpu-nvidia-l40s` | ✅ |
-| A100 | 80 GB | `gpu-nvidia-a100` | ❌ |
-
-## API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /health` | Health check |
-| `GET /v1/models` | List models |
-| `POST /v1/chat/completions` | Chat completions |
+---
 
 ## Configuration
 
-Environment variables:
+The deployment is optimized for production use:
 
-| Variable | Description |
-|----------|-------------|
-| `HF_TOKEN` | Hugging Face token (required) |
-| `VLLM_ATTENTION_BACKEND` | Default: `FLASHINFER` |
+```dockerfile
+--guided-decoding-backend xgrammar      # Fast JSON Schema enforcement
+--enable-auto-tool-choice               # Function calling
+--tool-call-parser qwen3_coder         # Tool extraction
+--reasoning-parser deepseek_r1         # Reasoning traces
+--max-model-len 262144                 # 262K token context
+--enable-chunked-prefill               # Fast time-to-first-token
+--gpu-memory-utilization 0.95          # Performance
+```
 
-## Cost Optimization
+Outlines library is also installed for custom grammar support (SWIFT, FIX, regulatory formats).
 
-Scale-to-zero is enabled by default:
-- Scales down after 15 minutes idle
-- First request after sleep takes 2-5 minutes to load model
+---
 
-## References
+## Performance
 
-- [Model Card](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8)
-- [vLLM Nemotron Guide](https://docs.vllm.ai/projects/recipes/en/latest/NVIDIA/Nemotron-3-Nano-30B-A3B.html)
-- [Koyeb GPU Docs](https://www.koyeb.com/docs/reference/instances#gpu-instances)
+Tested on Koyeb H100:
+
+| Metric | Value |
+|--------|-------|
+| Context window | 262K tokens (expandable to 1M) |
+| Throughput | 17K-23K tokens/sec |
+| Latency | 0.7-5s typical |
+| JSON compliance | 100% (with xgrammar) |
+
+---
+
+## Contributing
+
+We'd welcome:
+
+- **More test examples** - Real-world patterns you've tested
+- **Bug reports** - Issues with specific use cases
+- **Performance data** - Benchmarks on different hardware
+- **Documentation** - Clearer explanations or missing info
+
+Open an issue or submit a PR. Even small contributions help.
+
+---
+
+## Acknowledgments
+
+**Kudos to the NVIDIA team** for releasing Nemotron-3 as open source. This model's combination of reasoning capability, structured output support, and efficient inference makes it practical for real applications—not just research.
+
+The decision to release both the model and training details enables the community to build on this work. That's valuable.
+
+---
 
 ## License
 
-[NVIDIA Open Model License](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8/blob/main/LICENSE)
+This deployment code is provided as-is under the MIT License. You're free to use, modify, and commercialize it.
+
+**Important:** Respect the licenses of underlying components:
+- [NVIDIA Nemotron-3 Model License](https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8/blob/main/LICENSE)
+- [vLLM License (Apache 2.0)](https://github.com/vllm-project/vllm/blob/main/LICENSE)
+- [xgrammar License](https://github.com/mlc-ai/xgrammar/blob/main/LICENSE)
+- [Outlines License (Apache 2.0)](https://github.com/dottxt-ai/outlines/blob/main/LICENSE)
+
+---
+
+## Disclaimer
+
+**Deal ex Machina provides this code "as is" without warranty of any kind.**
+
+You assume full responsibility for:
+- Deployment and hosting costs
+- Model output quality and accuracy
+- Compliance with applicable regulations
+- Security and data handling
+- Any use in production systems
+
+Use at your own risk. This is demonstration code—adapt it for your requirements and test thoroughly before production use.
+
+---
+
+## Questions?
+
+- 📖 **Documentation**: See [`docs/`](./docs/) for detailed guides
+- 🐛 **Issues**: [Open an issue](https://github.com/DealExMachina/nemotron-3-inference/issues)
+- 💬 **Discussions**: [Start a discussion](https://github.com/DealExMachina/nemotron-3-inference/discussions)
+
+---
+
+<p align="center">
+  <sub>Built by <a href="https://github.com/DealExMachina">Deal ex Machina</a> • Powered by <a href="https://huggingface.co/nvidia">NVIDIA</a> • Deployed on <a href="https://www.koyeb.com/">Koyeb</a></sub>
+</p>

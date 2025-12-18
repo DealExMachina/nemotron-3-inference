@@ -1,0 +1,41 @@
+MIT License
+
+Copyright (c) 2025 Deal ex Machina
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD-PARTY LICENSES:
+
+This software uses the following components, each with their own license:
+
+- NVIDIA Nemotron-3-Nano-30B-A3B-FP8: NVIDIA Open Model License
+  https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8/blob/main/LICENSE
+
+- vLLM: Apache License 2.0
+  https://github.com/vllm-project/vllm/blob/main/LICENSE
+
+- xgrammar: Apache License 2.0
+  https://github.com/mlc-ai/xgrammar/blob/main/LICENSE
+
+- Outlines: Apache License 2.0
+  https://github.com/dottxt-ai/outlines/blob/main/LICENSE
+
+Users must comply with all applicable third-party licenses.
