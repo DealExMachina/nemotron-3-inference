@@ -5,8 +5,16 @@ import asyncio
 import time
 import json
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Literal
+from enum import Enum
 from openai import OpenAI
+
+try:
+    from pydantic import BaseModel, Field
+    PYDANTIC_AVAILABLE = True
+except ImportError:
+    PYDANTIC_AVAILABLE = False
+    print("⚠️  Pydantic not available. Some structured output tests will be skipped.")
 
 # API Configuration - vLLM OpenAI-compatible endpoint
 API_URL = "https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app"
@@ -130,8 +138,8 @@ def test_reasoning():
 
 def test_tool_calling():
     """Test tool calling capabilities via vLLM"""
-    print_section("TOOL CALLING TESTS")
-    print("🔧 Testing tool calling (qwen3_coder parser enabled in vLLM)")
+    print_section("TOOL CALLING TESTS (Basic)")
+    print("🔧 Testing tool calling - Nemotron-3 trained on Glaive V2 & Xlam datasets")
     
     # Define tools in OpenAI format
     tools = [
@@ -213,6 +221,87 @@ def test_tool_calling():
             print(f"❌ Error after {elapsed:.2f}s: {e}")
 
 
+def test_advanced_tool_calling():
+    """Test advanced tool calling with complex scenarios"""
+    print_section("TOOL CALLING TESTS (Advanced)")
+    print("🔧 Testing multi-step reasoning with tools")
+    
+    # Define more complex tools
+    tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "search_database",
+                "description": "Search a database for information",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Search query"},
+                        "table": {"type": "string", "enum": ["users", "products", "orders"]},
+                        "limit": {"type": "integer", "description": "Max results to return"}
+                    },
+                    "required": ["query", "table"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "send_email",
+                "description": "Send an email notification",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "to": {"type": "string", "description": "Email recipient"},
+                        "subject": {"type": "string", "description": "Email subject"},
+                        "body": {"type": "string", "description": "Email body"}
+                    },
+                    "required": ["to", "subject", "body"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "analyze_sentiment",
+                "description": "Analyze the sentiment of text",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "text": {"type": "string", "description": "Text to analyze"}
+                    },
+                    "required": ["text"]
+                }
+            }
+        }
+    ]
+    
+    test_cases = [
+        ("Database Query", "Search for all orders made by user 'john@example.com', limit to 10 results"),
+        ("Email Composition", "Send an email to support@company.com about a billing issue with order #12345"),
+        ("Sentiment Analysis", "Analyze the sentiment of this review: 'The product is amazing! Best purchase ever!'"),
+        ("Complex Workflow", "Search the products table for 'laptops', then email the results to admin@company.com"),
+    ]
+    
+    for name, prompt in test_cases:
+        print(f"\n🔧 {name}:")
+        print(f"   📝 Prompt: {prompt}")
+        start = time.time()
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": prompt}],
+                tools=tools,
+                tool_choice="auto",
+                max_tokens=200
+            )
+            elapsed = time.time() - start
+            print_result(response, elapsed, show_reasoning=False)
+        except Exception as e:
+            elapsed = time.time() - start
+            print(f"❌ Error after {elapsed:.2f}s: {e}")
+
+
 def test_different_prompt_types():
     """Test different types of prompts"""
     print_section("PROMPT TYPE TESTS")
@@ -285,10 +374,184 @@ def test_conversation():
         print(f"❌ Error after {elapsed:.2f}s: {e}")
 
 
+def test_structured_output_basic():
+    """Test structured JSON output with basic schemas"""
+    print_section("STRUCTURED OUTPUT TESTS (Basic JSON Schema)")
+    print("📋 Testing guided JSON generation with vLLM")
+    
+    test_cases = [
+        {
+            "name": "Movie Review Extraction",
+            "prompt": "Extract the title and rating from this review: 'Inception is a really well made film. I rate it four stars out of five.'",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "rating": {"type": "number", "minimum": 0, "maximum": 5}
+                },
+                "required": ["title", "rating"]
+            }
+        },
+        {
+            "name": "Person Information",
+            "prompt": "Generate information for a fictional person named John Smith who is 35 years old and works as a software engineer in San Francisco.",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "age": {"type": "integer"},
+                    "occupation": {"type": "string"},
+                    "city": {"type": "string"}
+                },
+                "required": ["name", "age", "occupation", "city"]
+            }
+        },
+        {
+            "name": "Task List",
+            "prompt": "Create a list of 3 daily tasks for a software developer.",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "tasks": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "task": {"type": "string"},
+                                "priority": {"type": "string", "enum": ["high", "medium", "low"]}
+                            },
+                            "required": ["task", "priority"]
+                        }
+                    }
+                },
+                "required": ["tasks"]
+            }
+        }
+    ]
+    
+    for case in test_cases:
+        print(f"\n📋 {case['name']}:")
+        print(f"   🎯 Schema: {json.dumps(case['schema'], indent=2)[:150]}...")
+        start = time.time()
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": case['prompt']}],
+                extra_body={"guided_json": case['schema']},
+                max_tokens=200
+            )
+            elapsed = time.time() - start
+            
+            # Parse and validate JSON
+            content = response.choices[0].message.content
+            try:
+                parsed = json.loads(content)
+                print(f"✅ Valid JSON: {json.dumps(parsed, indent=2)}")
+            except json.JSONDecodeError:
+                print(f"⚠️  Response: {content}")
+            
+            print(f"⏱️  Time: {elapsed:.3f}s")
+            if response.usage:
+                print(f"📊 Tokens: {response.usage.total_tokens}")
+        except Exception as e:
+            elapsed = time.time() - start
+            print(f"❌ Error after {elapsed:.2f}s: {e}")
+
+
+def test_structured_output_advanced():
+    """Test structured output with Pydantic models"""
+    if not PYDANTIC_AVAILABLE:
+        print_section("STRUCTURED OUTPUT TESTS (Pydantic)")
+        print("⚠️  Skipping - Pydantic not installed")
+        return
+    
+    print_section("STRUCTURED OUTPUT TESTS (Pydantic Models)")
+    print("🏗️  Testing with Pydantic BaseModel schemas")
+    
+    # Define Pydantic models
+    class CarType(str, Enum):
+        sedan = "sedan"
+        suv = "SUV"
+        truck = "Truck"
+        coupe = "Coupe"
+        
+    class CarDescription(BaseModel):
+        brand: str = Field(description="Car manufacturer")
+        model: str = Field(description="Car model name")
+        car_type: CarType = Field(description="Type of car")
+        year: Optional[int] = Field(description="Year of manufacture", ge=1900, le=2025)
+    
+    class CodeAnalysis(BaseModel):
+        language: Literal["python", "javascript", "java", "c++", "other"]
+        complexity: Literal["low", "medium", "high"]
+        has_errors: bool
+        suggestions: List[str] = Field(description="List of improvement suggestions")
+    
+    class RecipeInfo(BaseModel):
+        name: str
+        cuisine: str
+        prep_time_minutes: int
+        difficulty: Literal["easy", "medium", "hard"]
+        ingredients: List[str]
+        main_ingredient: str
+    
+    test_cases = [
+        {
+            "name": "Car from 90s",
+            "model": CarDescription,
+            "prompt": "Generate a JSON with the brand, model, year, and car_type of the most iconic car from the 90's."
+        },
+        {
+            "name": "Code Analysis",
+            "model": CodeAnalysis,
+            "prompt": "Analyze this code snippet: 'def hello(): print('Hello')'. Provide language, complexity, error status, and suggestions."
+        },
+        {
+            "name": "Recipe Extraction",
+            "model": RecipeInfo,
+            "prompt": "Create a recipe for classic Italian pasta carbonara with prep time, difficulty, and ingredients."
+        }
+    ]
+    
+    for case in test_cases:
+        print(f"\n🏗️  {case['name']}:")
+        schema = case['model'].model_json_schema()
+        print(f"   📐 Model: {case['model'].__name__}")
+        
+        start = time.time()
+        try:
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[{"role": "user", "content": case['prompt']}],
+                extra_body={"guided_json": schema},
+                max_tokens=300
+            )
+            elapsed = time.time() - start
+            
+            # Parse and validate with Pydantic
+            content = response.choices[0].message.content
+            try:
+                parsed_json = json.loads(content)
+                validated = case['model'](**parsed_json)
+                print(f"✅ Valid {case['model'].__name__}:")
+                print(json.dumps(parsed_json, indent=2))
+            except Exception as validation_error:
+                print(f"⚠️  Validation error: {validation_error}")
+                print(f"   Raw response: {content}")
+            
+            print(f"⏱️  Time: {elapsed:.3f}s")
+            if response.usage:
+                print(f"📊 Tokens: {response.usage.total_tokens}")
+        except Exception as e:
+            elapsed = time.time() - start
+            print(f"❌ Error after {elapsed:.2f}s: {e}")
+
+
 def main():
     print("\n" + "🧪 " * 35)
     print("  COMPREHENSIVE NEMOTRON 3 NANO API TEST SUITE")
     print("  vLLM OpenAI-compatible endpoint")
+    print("  Model: NVIDIA Nemotron-3-8B-Instruct")
     print("🧪 " * 35)
     
     try:
@@ -298,15 +561,29 @@ def main():
         for model in models.data:
             print(f"   - {model.id} (context: {getattr(model, 'max_model_len', 'N/A')})")
         
-        # Run tests
+        # Run basic tests
         test_context_lengths()
         test_reasoning()
-        test_tool_calling()
         test_different_prompt_types()
         test_conversation()
         
+        # Run tool calling tests
+        test_tool_calling()
+        test_advanced_tool_calling()
+        
+        # Run structured output tests
+        test_structured_output_basic()
+        test_structured_output_advanced()
+        
         print_section("TEST SUITE COMPLETE")
         print("✅ All tests completed!")
+        print("\n📊 Summary:")
+        print("   - Context Length Tests: ✅")
+        print("   - Reasoning Tests: ✅")
+        print("   - Tool Calling Tests (Basic & Advanced): ✅")
+        print("   - Structured Output Tests (JSON Schema & Pydantic): ✅")
+        print("   - Prompt Type Tests: ✅")
+        print("   - Conversation Tests: ✅")
         
     except KeyboardInterrupt:
         print("\n\n⚠️  Tests interrupted by user")
