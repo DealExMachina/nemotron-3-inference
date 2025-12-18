@@ -17,11 +17,12 @@ from enum import Enum
 from openai import OpenAI
 
 try:
-    from pydantic import BaseModel, Field, validator
+    from pydantic import BaseModel, Field, field_validator, ConfigDict
+    from pydantic.types import PositiveFloat
     PYDANTIC_AVAILABLE = True
 except ImportError:
     PYDANTIC_AVAILABLE = False
-    print("⚠️  Pydantic not available. Install: pip install pydantic")
+    print("⚠️  Pydantic not available. Install: pip install pydantic>=2.0")
     exit(1)
 
 # API Configuration
@@ -78,35 +79,49 @@ class RiskLevel(str, Enum):
 
 
 class Transaction(BaseModel):
-    """Single financial transaction"""
+    """Single financial transaction with automatic validation"""
+    model_config = ConfigDict(
+        str_strip_whitespace=True,
+        validate_default=True,
+        extra='forbid'
+    )
+    
     transaction_id: str = Field(description="Unique transaction identifier")
     timestamp: str = Field(description="ISO 8601 timestamp")
     transaction_type: TransactionType
     asset_symbol: str = Field(description="Stock ticker or asset symbol")
-    quantity: float = Field(gt=0, description="Number of shares/units")
-    price_per_unit: float = Field(gt=0, description="Price per share/unit")
+    quantity: PositiveFloat = Field(description="Number of shares/units")
+    price_per_unit: PositiveFloat = Field(description="Price per share/unit")
     total_amount: float = Field(description="Total transaction amount")
     currency: Currency
-    fees: Optional[float] = Field(default=0.0, ge=0)
+    fees: float = Field(default=0.0, ge=0)
     
-    @validator('total_amount')
-    def validate_total(cls, v, values):
-        if 'quantity' in values and 'price_per_unit' in values:
-            expected = values['quantity'] * values['price_per_unit']
-            if abs(v - expected) > 0.01:  # Allow small rounding differences
-                raise ValueError(f"Total amount mismatch: {v} != {expected}")
+    @field_validator('total_amount', mode='after')
+    @classmethod
+    def validate_total(cls, v: float, info) -> float:
+        """Validate total amount matches quantity × price"""
+        # Access other field values from info.data
+        if hasattr(info, 'data'):
+            quantity = info.data.get('quantity')
+            price = info.data.get('price_per_unit')
+            if quantity and price:
+                expected = quantity * price
+                if abs(v - expected) > 0.01:  # Allow small rounding differences
+                    raise ValueError(f"Total amount mismatch: {v:.2f} != {expected:.2f}")
         return v
 
 
 class PortfolioHolding(BaseModel):
     """Portfolio holding with valuation"""
-    asset_symbol: str
-    asset_name: str
+    model_config = ConfigDict(validate_default=True, extra='forbid')
+    
+    asset_symbol: str = Field(min_length=1, max_length=10)
+    asset_name: str = Field(min_length=1)
     asset_class: AssetClass
-    quantity: float = Field(gt=0)
-    current_price: float = Field(gt=0)
-    market_value: float = Field(gt=0)
-    cost_basis: float = Field(gt=0)
+    quantity: PositiveFloat
+    current_price: PositiveFloat
+    market_value: PositiveFloat
+    cost_basis: PositiveFloat
     unrealized_gain_loss: float
     percentage_of_portfolio: float = Field(ge=0, le=100)
     currency: Currency
@@ -114,74 +129,100 @@ class PortfolioHolding(BaseModel):
 
 class Portfolio(BaseModel):
     """Complete portfolio with holdings"""
-    portfolio_id: str
-    account_holder: str
-    total_value: float = Field(gt=0)
+    model_config = ConfigDict(
+        validate_default=True,
+        extra='forbid',
+        str_strip_whitespace=True
+    )
+    
+    portfolio_id: str = Field(min_length=1, description="Unique portfolio identifier")
+    account_holder: str = Field(min_length=1, description="Account holder name")
+    total_value: PositiveFloat = Field(description="Total portfolio value")
     currency: Currency
-    holdings: List[PortfolioHolding]
-    cash_balance: float = Field(ge=0)
-    last_updated: str
+    holdings: List[PortfolioHolding] = Field(min_length=0, description="List of holdings")
+    cash_balance: float = Field(ge=0, description="Available cash")
+    last_updated: str = Field(description="ISO 8601 timestamp")
 
 
 class MarketData(BaseModel):
     """Real-time market data"""
-    symbol: str
-    exchange: str
-    last_price: float = Field(gt=0)
-    bid_price: Optional[float] = Field(gt=0)
-    ask_price: Optional[float] = Field(gt=0)
+    model_config = ConfigDict(validate_default=True, extra='forbid')
+    
+    symbol: str = Field(min_length=1, max_length=20)
+    exchange: str = Field(min_length=1)
+    last_price: PositiveFloat
+    bid_price: Optional[PositiveFloat] = None
+    ask_price: Optional[PositiveFloat] = None
     volume: int = Field(ge=0)
-    day_high: float = Field(gt=0)
-    day_low: float = Field(gt=0)
-    day_open: float = Field(gt=0)
-    previous_close: float = Field(gt=0)
+    day_high: PositiveFloat
+    day_low: PositiveFloat
+    day_open: PositiveFloat
+    previous_close: PositiveFloat
     change_percent: float
-    timestamp: str
+    timestamp: str = Field(description="ISO 8601 timestamp")
 
 
 class RiskAnalysis(BaseModel):
-    """Portfolio risk analysis"""
-    portfolio_id: str
+    """Portfolio risk analysis with comprehensive metrics"""
+    model_config = ConfigDict(
+        validate_default=True,
+        extra='forbid',
+        str_strip_whitespace=True
+    )
+    
+    portfolio_id: str = Field(min_length=1, description="Portfolio identifier")
     overall_risk_level: RiskLevel
     volatility: float = Field(ge=0, le=100, description="Annualized volatility %")
-    sharpe_ratio: float = Field(description="Risk-adjusted return metric")
+    sharpe_ratio: float = Field(ge=-10, le=10, description="Risk-adjusted return metric")
     max_drawdown: float = Field(ge=0, le=100, description="Maximum drawdown %")
-    beta: float = Field(description="Market correlation")
+    beta: float = Field(ge=-5, le=5, description="Market correlation coefficient")
     var_95: float = Field(description="Value at Risk (95% confidence)")
-    diversification_score: float = Field(ge=0, le=100)
-    recommendations: List[str] = Field(description="Risk mitigation recommendations")
+    diversification_score: float = Field(ge=0, le=100, description="Diversification score 0-100")
+    recommendations: List[str] = Field(min_length=1, description="Risk mitigation recommendations")
 
 
 class TradeSignal(BaseModel):
-    """Algorithmic trading signal"""
-    signal_id: str
-    timestamp: str
-    symbol: str
+    """Algorithmic trading signal with validation"""
+    model_config = ConfigDict(
+        validate_default=True,
+        extra='forbid',
+        str_strip_whitespace=True
+    )
+    
+    signal_id: str = Field(min_length=1, description="Unique signal identifier")
+    timestamp: str = Field(description="ISO 8601 timestamp")
+    symbol: str = Field(min_length=1, max_length=10, description="Asset symbol")
     action: Literal["BUY", "SELL", "HOLD"]
-    confidence: float = Field(ge=0, le=100)
-    target_price: float = Field(gt=0)
-    stop_loss: float = Field(gt=0)
-    take_profit: float = Field(gt=0)
+    confidence: float = Field(ge=0, le=100, description="Confidence level 0-100%")
+    target_price: PositiveFloat = Field(description="Target price")
+    stop_loss: PositiveFloat = Field(description="Stop loss price")
+    take_profit: PositiveFloat = Field(description="Take profit price")
     timeframe: Literal["short_term", "medium_term", "long_term"]
-    indicators: List[str] = Field(description="Technical indicators used")
-    rationale: str = Field(description="Reason for the signal")
+    indicators: List[str] = Field(min_length=1, description="Technical indicators used")
+    rationale: str = Field(min_length=10, description="Reason for the signal")
 
 
 class FinancialStatement(BaseModel):
-    """Company financial statement"""
-    company_name: str
-    ticker: str
-    period: str = Field(description="e.g., Q4 2024, FY 2023")
+    """Company financial statement with comprehensive data"""
+    model_config = ConfigDict(
+        validate_default=True,
+        extra='forbid',
+        str_strip_whitespace=True
+    )
+    
+    company_name: str = Field(min_length=1, description="Company legal name")
+    ticker: str = Field(min_length=1, max_length=10, description="Stock ticker symbol")
+    period: str = Field(min_length=1, description="e.g., Q4 2024, FY 2023")
     currency: Currency
-    revenue: float = Field(gt=0)
-    operating_income: float
-    net_income: float
-    earnings_per_share: float
-    total_assets: float = Field(gt=0)
-    total_liabilities: float = Field(ge=0)
-    shareholders_equity: float
-    operating_cash_flow: float
-    free_cash_flow: float
+    revenue: PositiveFloat = Field(description="Total revenue")
+    operating_income: float = Field(description="Operating income (can be negative)")
+    net_income: float = Field(description="Net income (can be negative)")
+    earnings_per_share: float = Field(description="EPS (diluted)")
+    total_assets: PositiveFloat = Field(description="Total assets")
+    total_liabilities: float = Field(ge=0, description="Total liabilities")
+    shareholders_equity: float = Field(description="Shareholders equity")
+    operating_cash_flow: float = Field(description="Operating cash flow")
+    free_cash_flow: float = Field(description="Free cash flow")
 
 
 # =============================================================================
