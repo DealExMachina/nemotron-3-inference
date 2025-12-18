@@ -113,8 +113,7 @@ jobs:
           TOKEN=$(echo -n "$KOYEB_API_TOKEN" | tr -d '\n\r ')
           echo "token: $TOKEN" > ~/.koyeb.yaml
           chmod 600 ~/.koyeb.yaml
-          # Verify auth works
-          koyeb organization list
+          # Note: Organization tokens work for service operations, but not user operations
 
       - name: 🚀 Deploy to Koyeb
         run: |
@@ -193,8 +192,7 @@ jobs:
           TOKEN=$(echo -n "$KOYEB_API_TOKEN" | tr -d '\n\r ')
           echo "token: $TOKEN" > ~/.koyeb.yaml
           chmod 600 ~/.koyeb.yaml
-          # Verify auth works
-          koyeb organization list
+          # Note: Organization tokens work for service operations, but not user operations
 
       - name: 🚀 Redeploy to Koyeb
         run: |
