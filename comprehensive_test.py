@@ -39,13 +39,20 @@ def print_result(response, elapsed_time: float, show_reasoning: bool = True):
     choice = response.choices[0]
     message = choice.message
     
-    # Content
+    # Content (with fallback to reasoning_content if content is None)
     if message.content:
         content = message.content
         if len(content) > 300:
             print(f"💬 Response: {content[:300]}...")
         else:
             print(f"💬 Response: {content}")
+    elif hasattr(message, 'reasoning_content') and message.reasoning_content:
+        # Fallback: Use reasoning_content when content is None (deepseek_r1 parser behavior)
+        reasoning = message.reasoning_content
+        if len(reasoning) > 300:
+            print(f"💬 Response (from reasoning): {reasoning[:300]}...")
+        else:
+            print(f"💬 Response (from reasoning): {reasoning}")
     elif not message.tool_calls:
         # Only show warning if there are no tool calls (tool calls don't have content)
         print(f"⚠️  Response: No content (may be empty or tool-only response)")
@@ -86,10 +93,10 @@ def test_context_lengths():
     print("📝 Nemotron 3 Nano supports up to 1M tokens (vLLM configured for 262K)")
     
     test_cases = [
-        ("Small (~100 tokens)", " ".join(["word"] * 50) + ". What is 2+2?", 20),
-        ("Medium (~1K tokens)", " ".join(["sentence"] * 500) + ". What is the capital of France?", 30),
-        ("Large (~5K tokens)", " ".join(["paragraph"] * 2500) + ". Summarize quantum computing briefly.", 50),
-        ("Very Large (~10K tokens)", " ".join(["document"] * 5000) + ". What is machine learning?", 50),
+        ("Small (~100 tokens)", " ".join(["word"] * 50) + ". What is 2+2?", 100),  # Increased for reasoning phase
+        ("Medium (~1K tokens)", " ".join(["sentence"] * 500) + ". What is the capital of France?", 100),
+        ("Large (~5K tokens)", " ".join(["paragraph"] * 2500) + ". Summarize quantum computing briefly.", 150),
+        ("Very Large (~10K tokens)", " ".join(["document"] * 5000) + ". What is machine learning?", 150),
     ]
     
     for name, prompt, max_tokens in test_cases:
@@ -215,7 +222,7 @@ def test_tool_calling():
                 messages=[{"role": "user", "content": prompt}],
                 tools=tools,
                 tool_choice="auto",
-                max_tokens=150
+                max_tokens=300  # Increased to allow reasoning + tool call
             )
             elapsed = time.time() - start
             print_result(response, elapsed, show_reasoning=False)
@@ -296,7 +303,7 @@ def test_advanced_tool_calling():
                 messages=[{"role": "user", "content": prompt}],
                 tools=tools,
                 tool_choice="auto",
-                max_tokens=200
+                max_tokens=400  # Increased to allow reasoning + tool call
             )
             elapsed = time.time() - start
             print_result(response, elapsed, show_reasoning=False)
@@ -350,14 +357,17 @@ def test_conversation():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
-            max_tokens=100
+            max_tokens=200  # Increased to allow reasoning + response
         )
         elapsed = time.time() - start
         print_result(response, elapsed, show_reasoning=False)
         
         # Add assistant response to conversation
         assistant_msg = response.choices[0].message.content
-        messages.append({"role": "assistant", "content": assistant_msg})
+        # Fallback to reasoning_content if content is None
+        if not assistant_msg and hasattr(response.choices[0].message, 'reasoning_content'):
+            assistant_msg = response.choices[0].message.reasoning_content
+        messages.append({"role": "assistant", "content": assistant_msg or ""})
         
         # Second turn
         messages.append({"role": "user", "content": "I prefer Python. Can you write me a simple hello world function?"})
@@ -367,7 +377,7 @@ def test_conversation():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
-            max_tokens=150
+            max_tokens=300  # Increased to allow reasoning + code generation
         )
         elapsed = time.time() - start
         print_result(response, elapsed, show_reasoning=False)
@@ -448,7 +458,8 @@ def test_structured_output_basic():
                         "strict": True
                     }
                 },
-                max_tokens=200
+                max_tokens=800,  # Increased further to prevent any truncation
+                temperature=0  # Zero temperature for 100% deterministic output
             )
             elapsed = time.time() - start
             
@@ -545,7 +556,8 @@ def test_structured_output_advanced():
                         "strict": True
                     }
                 },
-                max_tokens=300
+                max_tokens=800,  # Increased for complex Pydantic models  
+                temperature=0.1  # Low temperature for consistent, reliable output
             )
             elapsed = time.time() - start
             
