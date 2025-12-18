@@ -116,25 +116,46 @@ jobs:
               \"definition\": {
                 \"name\": \"nemotron\",
                 \"type\": \"WEB\",
-                \"docker\": {
-                  \"image\": \"$IMAGE\"
-                },
-                \"instance_types\": [{\"type\": \"gpu-nvidia-h100\"}],
-                \"regions\": [\"was\"],
-                \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
+                \"strategy\": {\"type\": \"DEPLOYMENT_STRATEGY_TYPE_ROLLING\"},
                 \"routes\": [{\"path\": \"/\", \"port\": 8000}],
-                \"scalings\": [{\"min\": 0, \"max\": 1}],
+                \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
+                \"proxy_ports\": [],
                 \"env\": [
-                  {\"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
-                  {\"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                  {\"scopes\": [\"region:na\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"scopes\": [\"region:na\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
                 ],
+                \"regions\": [\"na\"],
+                \"scalings\": [{
+                  \"scopes\": [\"region:na\"],
+                  \"min\": 0,
+                  \"max\": 1,
+                  \"targets\": [{
+                    \"sleep_idle_delay\": {
+                      \"value\": 0,
+                      \"deep_sleep_value\": 3900,
+                      \"light_sleep_value\": 0
+                    }
+                  }]
+                }],
+                \"instance_types\": [{\"scopes\": [\"region:na\"], \"type\": \"gpu-nvidia-h100\"}],
                 \"health_checks\": [{
-                  \"http\": {\"path\": \"/health\", \"port\": 8000},
+                  \"http\": {\"path\": \"/health\", \"port\": 8000, \"method\": \"GET\", \"headers\": []},
                   \"grace_period\": 300,
                   \"interval\": 30,
                   \"timeout\": 10,
                   \"restart_limit\": 3
-                }]
+                }],
+                \"volumes\": [],
+                \"config_files\": [],
+                \"skip_cache\": false,
+                \"docker\": {
+                  \"image\": \"$IMAGE\",
+                  \"image_registry_secret\": \"jeanbapt\",
+                  \"command\": \"\",
+                  \"args\": [],
+                  \"entrypoint\": [],
+                  \"privileged\": false
+                }
               }
             }"
           
@@ -197,25 +218,46 @@ jobs:
               \"definition\": {
                 \"name\": \"nemotron\",
                 \"type\": \"WEB\",
-                \"docker\": {
-                  \"image\": \"$IMAGE\"
-                },
-                \"instance_types\": [{\"type\": \"gpu-nvidia-h100\"}],
-                \"regions\": [\"was\"],
-                \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
+                \"strategy\": {\"type\": \"DEPLOYMENT_STRATEGY_TYPE_ROLLING\"},
                 \"routes\": [{\"path\": \"/\", \"port\": 8000}],
-                \"scalings\": [{\"min\": 0, \"max\": 1}],
+                \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
+                \"proxy_ports\": [],
                 \"env\": [
-                  {\"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
-                  {\"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                  {\"scopes\": [\"region:na\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"scopes\": [\"region:na\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
                 ],
+                \"regions\": [\"na\"],
+                \"scalings\": [{
+                  \"scopes\": [\"region:na\"],
+                  \"min\": 0,
+                  \"max\": 1,
+                  \"targets\": [{
+                    \"sleep_idle_delay\": {
+                      \"value\": 0,
+                      \"deep_sleep_value\": 3900,
+                      \"light_sleep_value\": 0
+                    }
+                  }]
+                }],
+                \"instance_types\": [{\"scopes\": [\"region:na\"], \"type\": \"gpu-nvidia-h100\"}],
                 \"health_checks\": [{
-                  \"http\": {\"path\": \"/health\", \"port\": 8000},
+                  \"http\": {\"path\": \"/health\", \"port\": 8000, \"method\": \"GET\", \"headers\": []},
                   \"grace_period\": 300,
                   \"interval\": 30,
                   \"timeout\": 10,
                   \"restart_limit\": 3
-                }]
+                }],
+                \"volumes\": [],
+                \"config_files\": [],
+                \"skip_cache\": false,
+                \"docker\": {
+                  \"image\": \"$IMAGE\",
+                  \"image_registry_secret\": \"jeanbapt\",
+                  \"command\": \"\",
+                  \"args\": [],
+                  \"entrypoint\": [],
+                  \"privileged\": false
+                }
               }
             }"
           
