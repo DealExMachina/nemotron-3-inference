@@ -23,6 +23,8 @@ Deploy [NVIDIA Nemotron-3-Nano-30B-A3B-FP8](https://huggingface.co/nvidia/NVIDIA
 - Long context (262K tokens on vLLM)
 - Multilingual support
 
+**Performance:** Run `comprehensive_test.py` to measure real-world performance metrics including response times, token throughput, and latency across different workloads.
+
 ## Quick Start
 
 ### Deploy to Koyeb
@@ -82,35 +84,56 @@ response = client.chat.completions.create(
 )
 ```
 
-## Test Suite
+## Performance Metrics
 
-Run the comprehensive test suite to validate the deployment:
+The comprehensive test suite (`comprehensive_test.py`) measures real-world performance metrics on the deployed endpoint. Run it to benchmark your deployment:
 
 ```bash
 pip install openai
 python comprehensive_test.py
 ```
 
-The test suite includes:
+### Measured Performance
 
-| Test | Description |
-|------|-------------|
-| **Context Length** | Tests from 100 to 10,000 tokens input |
-| **Reasoning** | Math problems, logical puzzles, multi-step calculations with thinking traces |
-| **Tool Calling** | Time queries, weather lookups, calculations, multi-tool requests |
-| **Prompt Types** | Code generation, creative writing, technical explanations, analysis |
-| **Conversation** | Multi-turn dialogue with context retention |
+The test suite tracks and reports:
 
-Example output:
+| Metric | Description | Example Output |
+|--------|-------------|----------------|
+| **Response Time** | End-to-end latency for each request | `⏱️ Time: 1.234s` |
+| **Token Throughput** | Tokens processed per second | `🚀 Speed: 4,155 tokens/s` |
+| **Token Usage** | Prompt, completion, and total tokens | `📊 Tokens: 5,127 (prompt: 5,012, completion: 115)` |
+| **Context Handling** | Performance across different input sizes (100 to 10K+ tokens) | Tested with small, medium, large, and very large inputs |
+| **Reasoning Performance** | Time and quality of multi-step reasoning tasks | Includes thinking traces via `deepseek_r1` parser |
+| **Tool Calling Speed** | Latency for function calling operations | Measured for single and multi-tool requests |
+
+### Performance Test Coverage
+
+| Test Category | What's Measured |
+|---------------|-----------------|
+| **Context Length** | Response time and throughput for inputs from 100 to 10,000+ tokens |
+| **Reasoning** | Step-by-step reasoning performance with thinking traces |
+| **Tool Calling** | Function calling latency for time, weather, calculation, and multi-tool queries |
+| **Prompt Types** | Performance across coding, creative writing, technical explanations, and analysis |
+| **Conversation** | Multi-turn dialogue performance with context retention |
+
+### Example Test Output
+
 ```
 📏 Large (~5K tokens):
 📝 Estimated input tokens: ~5,000
 ⏱️  Time: 1.234s
 💬 Response: Machine learning is...
+🧠 Reasoning: [thinking traces if enabled]
 📊 Tokens: 5,127 (prompt: 5,012, completion: 115)
 🚀 Speed: 4,155 tokens/s
 🏁 Finish Reason: stop
 ```
+
+**Note:** Actual performance depends on:
+- GPU instance type (H100 recommended for best performance)
+- Current load and scale-to-zero wake time
+- Input/output token counts
+- Model warm-up state
 
 ## Hardware Requirements
 

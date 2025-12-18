@@ -91,34 +91,13 @@ jobs:
     environment:
       name: production
       url: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app
-    env:
-      KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-      KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
 
     steps:
-      - name: 🔧 Install Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: ${{ secrets.KOYEB_API_TOKEN }}
-
-      - name: 🔍 Verify Koyeb CLI
+      - name: 🚀 Deploy to Koyeb via API
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
-          which koyeb || (echo "$HOME/.koyeb/bin" >> $GITHUB_PATH && export PATH="$HOME/.koyeb/bin:$PATH")
-          koyeb version
-
-      - name: 🔑 Configure Koyeb auth (non-interactive)
-        run: |
-          mkdir -p ~/.koyeb
-          # Remove any newlines/whitespace from token
-          TOKEN=$(echo -n "$KOYEB_API_TOKEN" | tr -d '\n\r ')
-          echo "token: $TOKEN" > ~/.koyeb.yaml
-          chmod 600 ~/.koyeb.yaml
-          # Note: Organization tokens work for service operations, but not user operations
-
-      - name: 🚀 Deploy to Koyeb
-        run: |
-          APP_NAME="${{ env.KOYEB_APP_NAME }}"
-          SVC_NAME="${{ env.KOYEB_SERVICE_NAME }}"
+          SERVICE_ID="0660f41c-9519-406d-8caa-5c4587dfa03b"
           
           if [ "${{ github.event.inputs.skip_build }}" = "true" ]; then
             IMAGE="${{ env.IMAGE_NAME }}:latest"
@@ -127,9 +106,37 @@ jobs:
           fi
           
           echo "📦 Deploying image: $IMAGE"
-          echo "📍 App: $APP_NAME / Service: $SVC_NAME"
+          echo "📍 Service ID: $SERVICE_ID"
           
-          koyeb services update "$APP_NAME/$SVC_NAME" --docker "$IMAGE"
+          # Update service using Koyeb API directly
+          curl -X PATCH "https://app.koyeb.com/v1/services/$SERVICE_ID" \
+            -H "Authorization: Bearer ${KOYEB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"definition\": {
+                \"name\": \"nemotron\",
+                \"type\": \"WEB\",
+                \"docker\": {
+                  \"image\": \"$IMAGE\"
+                },
+                \"instance_types\": [{\"type\": \"gpu-nvidia-h100\"}],
+                \"regions\": [\"was\"],
+                \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
+                \"routes\": [{\"path\": \"/\", \"port\": 8000}],
+                \"scalings\": [{\"min\": 0, \"max\": 1}],
+                \"env\": [
+                  {\"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                ],
+                \"health_checks\": [{
+                  \"http\": {\"path\": \"/health\", \"port\": 8000},
+                  \"grace_period\": 300,
+                  \"interval\": 30,
+                  \"timeout\": 10,
+                  \"restart_limit\": 3
+                }]
+              }
+            }"
           
           echo "✅ Service update triggered!"
 
@@ -170,37 +177,47 @@ jobs:
     environment:
       name: production
       url: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app
-    env:
-      KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-      KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
 
     steps:
-      - name: 🔧 Install Koyeb CLI
-        uses: koyeb-community/koyeb-actions@v2
-        with:
-          api_token: ${{ secrets.KOYEB_API_TOKEN }}
-
-      - name: 🔍 Verify Koyeb CLI
-        run: |
-          which koyeb || (echo "$HOME/.koyeb/bin" >> $GITHUB_PATH && export PATH="$HOME/.koyeb/bin:$PATH")
-          koyeb version
-
-      - name: 🔑 Configure Koyeb auth (non-interactive)
-        run: |
-          mkdir -p ~/.koyeb
-          # Remove any newlines/whitespace from token
-          TOKEN=$(echo -n "$KOYEB_API_TOKEN" | tr -d '\n\r ')
-          echo "token: $TOKEN" > ~/.koyeb.yaml
-          chmod 600 ~/.koyeb.yaml
-          # Note: Organization tokens work for service operations, but not user operations
-
-      - name: 🚀 Redeploy to Koyeb
+      - name: 🚀 Redeploy to Koyeb via API
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
         run: |
           IMAGE="${{ env.IMAGE_NAME }}:latest"
-          echo "📦 Redeploying with image: $IMAGE"
+          SERVICE_ID="0660f41c-9519-406d-8caa-5c4587dfa03b"
           
-          koyeb services update "${{ env.KOYEB_APP_NAME }}/${{ env.KOYEB_SERVICE_NAME }}" \
-            --docker "$IMAGE"
+          echo "📦 Redeploying with image: $IMAGE"
+          echo "📍 Service ID: $SERVICE_ID"
+          
+          # Update service using Koyeb API directly
+          curl -X PATCH "https://app.koyeb.com/v1/services/$SERVICE_ID" \
+            -H "Authorization: Bearer ${KOYEB_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"definition\": {
+                \"name\": \"nemotron\",
+                \"type\": \"WEB\",
+                \"docker\": {
+                  \"image\": \"$IMAGE\"
+                },
+                \"instance_types\": [{\"type\": \"gpu-nvidia-h100\"}],
+                \"regions\": [\"was\"],
+                \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
+                \"routes\": [{\"path\": \"/\", \"port\": 8000}],
+                \"scalings\": [{\"min\": 0, \"max\": 1}],
+                \"env\": [
+                  {\"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                ],
+                \"health_checks\": [{
+                  \"http\": {\"path\": \"/health\", \"port\": 8000},
+                  \"grace_period\": 300,
+                  \"interval\": 30,
+                  \"timeout\": 10,
+                  \"restart_limit\": 3
+                }]
+              }
+            }"
           
           echo "✅ Redeployment triggered!"
           echo "🔗 URL: https://nemotron-3-inference-dealexmachina-53d19e1c.koyeb.app"
