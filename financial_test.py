@@ -270,7 +270,14 @@ def test_transaction_parsing():
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[{"role": "user", "content": case['prompt']}],
-                extra_body={"guided_json": schema},
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "Transaction",
+                        "schema": schema,
+                        "strict": True
+                    }
+                },
                 max_tokens=300
             )
             elapsed = time.time() - start
@@ -324,8 +331,11 @@ def test_portfolio_analysis():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
-            extra_body={"guided_json": schema},
-            max_tokens=800
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "Portfolio", "schema": schema, "strict": True}
+            },
+            max_tokens=1200  # Increased for complex nested portfolio structure
         )
         elapsed = time.time() - start
         
@@ -390,7 +400,10 @@ def test_risk_analysis():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
-            extra_body={"guided_json": schema},
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "FinancialData", "schema": schema, "strict": True}
+            },
             max_tokens=600
         )
         elapsed = time.time() - start
@@ -467,8 +480,11 @@ def test_trade_signals():
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[{"role": "user", "content": case['prompt']}],
-                extra_body={"guided_json": schema},
-                max_tokens=400
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {"name": "TradeSignal", "schema": schema, "strict": True}
+                },
+                max_tokens=600  # Increased for complex trade signals
             )
             elapsed = time.time() - start
             
@@ -529,7 +545,10 @@ def test_financial_statements():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
-            extra_body={"guided_json": schema},
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "FinancialData", "schema": schema, "strict": True}
+            },
             max_tokens=400
         )
         elapsed = time.time() - start
@@ -589,8 +608,11 @@ def test_market_data():
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[{"role": "user", "content": prompt}],
-            extra_body={"guided_json": schema},
-            max_tokens=300
+            response_format={
+                "type": "json_schema",
+                "json_schema": {"name": "MarketData", "schema": schema, "strict": True}
+            },
+            max_tokens=500  # Increased for market data structure
         )
         elapsed = time.time() - start
         

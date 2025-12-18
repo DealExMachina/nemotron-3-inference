@@ -440,7 +440,14 @@ def test_structured_output_basic():
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[{"role": "user", "content": case['prompt']}],
-                extra_body={"guided_json": case['schema']},
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "ResponseSchema",
+                        "schema": case['schema'],
+                        "strict": True
+                    }
+                },
                 max_tokens=200
             )
             elapsed = time.time() - start
@@ -530,7 +537,14 @@ def test_structured_output_advanced():
             response = client.chat.completions.create(
                 model=MODEL_NAME,
                 messages=[{"role": "user", "content": case['prompt']}],
-                extra_body={"guided_json": schema},
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": case['model'].__name__,
+                        "schema": schema,
+                        "strict": True
+                    }
+                },
                 max_tokens=300
             )
             elapsed = time.time() - start
