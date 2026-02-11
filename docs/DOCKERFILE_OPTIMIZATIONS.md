@@ -17,18 +17,16 @@
 
 ## 🔧 Key Optimizations Added
 
-### 1. **Guided Decoding (JSON Schema)**
+### 1. **Structured Outputs (JSON Schema)**
 
-```dockerfile
---guided-decoding-backend xgrammar
-```
+In vLLM 0.12.0, `--guided-decoding-backend` was removed. Structured outputs now use the default `"auto"` backend, which selects **xgrammar** for JSON Schema requests when available.
 
 **What it does:**
 - Enforces JSON Schema constraints during generation
 - Guarantees valid JSON output
-- Uses **xgrammar** backend for optimal performance (faster than alternatives)
+- Uses **xgrammar** backend when appropriate (via "auto" selection)
 
-**Why xgrammar:**
+**Why xgrammar (auto-selected):**
 - ✅ **Fastest** guided decoding backend
 - ✅ **Most reliable** for complex schemas
 - ✅ Supports nested objects, arrays, enums, constraints
@@ -39,7 +37,7 @@
 response = client.chat.completions.create(
     model="nemotron",
     messages=[...],
-    extra_body={"guided_json": json_schema}  # Now works!
+    extra_body={"structured_outputs": {"json": json_schema}}  # v0.12+ API
 )
 ```
 
@@ -331,7 +329,7 @@ schema = {
 response = client.chat.completions.create(
     model="nemotron",
     messages=[{"role": "user", "content": "Generate a person"}],
-    extra_body={"guided_json": schema}
+    extra_body={"structured_outputs": {"json": schema}}
 )
 
 print(response.choices[0].message.content)
@@ -369,7 +367,7 @@ response = client.chat.completions.create(
 
 | Flag | Value | Purpose |
 |------|-------|---------|
-| `--guided-decoding-backend` | xgrammar | Fast JSON Schema enforcement |
+| (default) | auto | Structured outputs backend (uses xgrammar for JSON; v0.12+ removed --guided-decoding-backend) |
 | `--enable-auto-tool-choice` | (flag) | Enable tool calling |
 | `--tool-call-parser` | qwen3_coder | Parse tool calls |
 | `--reasoning-parser` | deepseek_r1 | Extract reasoning |

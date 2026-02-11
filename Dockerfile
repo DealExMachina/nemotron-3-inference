@@ -33,7 +33,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
 # Note: The base image entrypoint is `python -m vllm.entrypoints.openai.api_server`
 #
 # Key flags:
-# - --guided-decoding-backend xgrammar: Use xgrammar for fast JSON Schema enforcement
+# - Structured outputs: v0.12+ uses "auto" backend by default (picks xgrammar for JSON Schema; --guided-decoding-backend was removed)
 # - --enable-auto-tool-choice: Enable automatic tool/function calling
 # - --tool-call-parser qwen3_coder: Use Qwen3 parser for tool calls (Nemotron trained on similar)
 # - --reasoning-parser deepseek_r1: Enable reasoning traces in responses
@@ -52,6 +52,7 @@ CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
      "--enable-auto-tool-choice", \
      "--tool-call-parser", "qwen3_coder", \
      "--reasoning-parser", "deepseek_r1", \
-     "--guided-decoding-backend", "xgrammar", \
      "--enable-chunked-prefill"]
+
+
 

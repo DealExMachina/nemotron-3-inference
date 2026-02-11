@@ -162,7 +162,7 @@ docker run --gpus all -p 8000:8000 \
 The deployment is optimized for production use:
 
 ```dockerfile
---guided-decoding-backend xgrammar      # Fast JSON Schema enforcement
+# Structured outputs: v0.12+ uses "auto" backend (xgrammar for JSON Schema)
 --enable-auto-tool-choice               # Function calling
 --tool-call-parser qwen3_coder         # Tool extraction
 --reasoning-parser deepseek_r1         # Reasoning traces
