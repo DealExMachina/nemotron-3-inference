@@ -40,9 +40,10 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
 # - --max-model-len 262144: Set context window (262K tokens, can increase to 1M)
 # - --max-num-seqs 256: Allow more concurrent requests
 # - --gpu-memory-utilization 0.95: Use 95% of GPU memory for better performance
-CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
+# Model as first positional arg (v0.13 prep); --revision pins for reproducibility
+CMD ["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
+     "--revision", "main", \
      "--dtype", "auto", \
-     "--trust-remote-code", \
      "--served-model-name", "nemotron", \
      "--host", "0.0.0.0", \
      "--port", "8000", \
