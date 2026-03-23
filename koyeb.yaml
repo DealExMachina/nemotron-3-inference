@@ -28,7 +28,7 @@ definition:
   # Deployment regions
   # GPU availability varies by region
   regions:
-    - sfo  # San Francisco - GPU availability
+    - na   # North America - was working in Feb 2026
 
   # Port configuration
   ports:
@@ -50,14 +50,8 @@ definition:
       timeout: 10
       restart_limit: 3
 
-  # Scaling configuration (aligned with GitHub Actions deploy workflow)
-  # min: 0 enables scale-to-zero for cost savings
-  # max: 1 for single instance (GPU models are expensive)
+  # Scaling: min 1 keeps instance always running (avoids 404 from scale-to-zero)
   scalings:
-    - min: 0
+    - min: 1
       max: 1
-      targets:
-        # Align with workflow: ~65 min idle before scale-to-zero
-        - sleep_idle_delay:
-            value: 3900
 
