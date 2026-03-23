@@ -255,9 +255,9 @@ After:
 ### For Maximum Context (1M tokens):
 
 ```dockerfile
-CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
+CMD ["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
      "--max-model-len", "1000000", \
-     --gpu-memory-utilization", "0.98", \
+     "--gpu-memory-utilization", "0.98", \
      # ... other flags
 ]
 ```
@@ -269,10 +269,10 @@ CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
 ### For Maximum Throughput:
 
 ```dockerfile
-CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
+CMD ["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
      "--max-num-seqs", "512", \
      "--max-model-len", "131072", \
-     --gpu-memory-utilization", "0.90", \
+     "--gpu-memory-utilization", "0.90", \
      # ... other flags
 ]
 ```
@@ -284,10 +284,10 @@ CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
 ### For Minimal Latency:
 
 ```dockerfile
-CMD ["--model", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
+CMD ["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
      "--max-num-seqs", "64", \
-     --enable-chunked-prefill", \
-     --gpu-memory-utilization", "0.95", \
+     "--enable-chunked-prefill", \
+     "--gpu-memory-utilization", "0.95", \
      # ... other flags
 ]
 ```

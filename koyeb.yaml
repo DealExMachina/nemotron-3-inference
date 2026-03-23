@@ -50,16 +50,14 @@ definition:
       timeout: 10
       restart_limit: 3
 
-  # Scaling configuration
+  # Scaling configuration (aligned with GitHub Actions deploy workflow)
   # min: 0 enables scale-to-zero for cost savings
   # max: 1 for single instance (GPU models are expensive)
   scalings:
     - min: 0
       max: 1
       targets:
-        - requests_per_second:
-            value: 10
-        # Scale to zero after 15 minutes of idle
+        # Align with workflow: ~65 min idle before scale-to-zero
         - sleep_idle_delay:
-            value: 900
+            value: 3900
 

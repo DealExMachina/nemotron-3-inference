@@ -87,6 +87,7 @@ jobs:
     if: |
       always() &&
       github.ref == 'refs/heads/main' &&
+      github.event.inputs.skip_build != 'true' &&
       (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
     environment:
       name: production
@@ -121,12 +122,12 @@ jobs:
                 \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
                 \"proxy_ports\": [],
                 \"env\": [
-                  {\"scopes\": [\"region:na\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
-                  {\"scopes\": [\"region:na\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
                 ],
-                \"regions\": [\"na\"],
+                \"regions\": [\"sfo\"],
                 \"scalings\": [{
-                  \"scopes\": [\"region:na\"],
+                  \"scopes\": [\"region:sfo\"],
                   \"min\": 0,
                   \"max\": 1,
                   \"targets\": [{
@@ -137,7 +138,7 @@ jobs:
                     }
                   }]
                 }],
-                \"instance_types\": [{\"scopes\": [\"region:na\"], \"type\": \"gpu-nvidia-h100\"}],
+                \"instance_types\": [{\"scopes\": [\"region:sfo\"], \"type\": \"gpu-nvidia-h100\"}],
                 \"health_checks\": [{
                   \"http\": {\"path\": \"/health\", \"port\": 8000, \"method\": \"GET\", \"headers\": []},
                   \"grace_period\": 300,
@@ -151,9 +152,6 @@ jobs:
                 \"docker\": {
                   \"image\": \"$IMAGE\",
                   \"image_registry_secret\": \"jeanbapt\",
-                  \"command\": \"\",
-                  \"args\": [],
-                  \"entrypoint\": [],
                   \"privileged\": false
                 }
               }
@@ -223,12 +221,12 @@ jobs:
                 \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
                 \"proxy_ports\": [],
                 \"env\": [
-                  {\"scopes\": [\"region:na\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
-                  {\"scopes\": [\"region:na\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
                 ],
-                \"regions\": [\"na\"],
+                \"regions\": [\"sfo\"],
                 \"scalings\": [{
-                  \"scopes\": [\"region:na\"],
+                  \"scopes\": [\"region:sfo\"],
                   \"min\": 0,
                   \"max\": 1,
                   \"targets\": [{
@@ -239,7 +237,7 @@ jobs:
                     }
                   }]
                 }],
-                \"instance_types\": [{\"scopes\": [\"region:na\"], \"type\": \"gpu-nvidia-h100\"}],
+                \"instance_types\": [{\"scopes\": [\"region:sfo\"], \"type\": \"gpu-nvidia-h100\"}],
                 \"health_checks\": [{
                   \"http\": {\"path\": \"/health\", \"port\": 8000, \"method\": \"GET\", \"headers\": []},
                   \"grace_period\": 300,
@@ -253,9 +251,6 @@ jobs:
                 \"docker\": {
                   \"image\": \"$IMAGE\",
                   \"image_registry_secret\": \"jeanbapt\",
-                  \"command\": \"\",
-                  \"args\": [],
-                  \"entrypoint\": [],
                   \"privileged\": false
                 }
               }
