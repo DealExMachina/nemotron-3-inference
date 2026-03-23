@@ -17,10 +17,10 @@ ENV SERVED_MODEL_NAME="nemotron"
 # Optional: Set HF_TOKEN at runtime for gated models
 # ENV HF_TOKEN=""
 
-# Install both xgrammar and Outlines for maximum flexibility
-# xgrammar: Fast JSON Schema (production speed)
-# Outlines: Complex grammars (financial formats, custom structures)
-RUN pip install --no-cache-dir xgrammar outlines || echo "Structured generation backends installed"
+# Install xgrammar and outlines for structured generation (vLLM fallback)
+# xgrammar: Fast JSON Schema; outlines: complex grammars
+# Pinned for reproducible builds
+RUN pip install --no-cache-dir "xgrammar>=0.1.32" "outlines>=1.2.12" || echo "Structured generation backends installed"
 
 # Expose the API port
 EXPOSE 8000
