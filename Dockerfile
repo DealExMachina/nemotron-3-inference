@@ -43,6 +43,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=120s --retries=3 \
 # Model as first positional arg (v0.13 prep); --revision pins for reproducibility
 CMD ["nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8", \
      "--revision", "main", \
+     "--trust-remote-code", \
      "--dtype", "auto", \
      "--served-model-name", "nemotron", \
      "--host", "0.0.0.0", \
