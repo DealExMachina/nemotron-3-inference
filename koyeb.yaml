@@ -28,7 +28,7 @@ definition:
   # Deployment regions
   # GPU availability varies by region
   regions:
-    - na   # North America - was working in Feb 2026
+    - was  # Washington DC - GA region, H100 available
 
   # Port configuration
   ports:
