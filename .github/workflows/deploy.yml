@@ -109,8 +109,8 @@ jobs:
           echo "📦 Deploying image: $IMAGE"
           echo "📍 Service ID: $SERVICE_ID"
           
-          # Update service using Koyeb API directly
-          curl -X PATCH "https://app.koyeb.com/v1/services/$SERVICE_ID" \
+          # Update service using Koyeb API (capture response, fail on error)
+          response=$(curl -s -w "\n%{http_code}" -X PATCH "https://app.koyeb.com/v1/services/$SERVICE_ID" \
             -H "Authorization: Bearer ${KOYEB_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{
@@ -122,16 +122,16 @@ jobs:
                 \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
                 \"proxy_ports\": [],
                 \"env\": [
-                  {\"scopes\": [\"region:was\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
-                  {\"scopes\": [\"region:was\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
                 ],
-                \"regions\": [\"was\"],
+                \"regions\": [\"sfo\"],
                 \"scalings\": [{
-                  \"scopes\": [\"region:was\"],
+                  \"scopes\": [\"region:sfo\"],
                   \"min\": 1,
                   \"max\": 1
                 }],
-                \"instance_types\": [{\"scopes\": [\"region:was\"], \"type\": \"gpu-nvidia-h100\"}],
+                \"instance_types\": [{\"scopes\": [\"region:sfo\"], \"type\": \"gpu-nvidia-h100\"}],
                 \"health_checks\": [{
                   \"http\": {\"path\": \"/health\", \"port\": 8000, \"method\": \"GET\", \"headers\": []},
                   \"grace_period\": 300,
@@ -148,8 +148,15 @@ jobs:
                   \"privileged\": false
                 }
               }
-            }"
-          
+            }")
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "Koyeb API response: $http_code"
+          echo "$body" | head -20
+          if [ "$http_code" != "200" ]; then
+            echo "❌ Koyeb API error (HTTP $http_code)"
+            exit 1
+          fi
           echo "✅ Service update triggered!"
 
       - name: ⏳ Wait for deployment
@@ -214,16 +221,16 @@ jobs:
                 \"ports\": [{\"port\": 8000, \"protocol\": \"http\"}],
                 \"proxy_ports\": [],
                 \"env\": [
-                  {\"scopes\": [\"region:was\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
-                  {\"scopes\": [\"region:was\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"HF_TOKEN\", \"secret\": \"hf-token\"},
+                  {\"scopes\": [\"region:sfo\"], \"key\": \"VLLM_ATTENTION_BACKEND\", \"value\": \"FLASHINFER\"}
                 ],
-                \"regions\": [\"was\"],
+                \"regions\": [\"sfo\"],
                 \"scalings\": [{
-                  \"scopes\": [\"region:was\"],
+                  \"scopes\": [\"region:sfo\"],
                   \"min\": 1,
                   \"max\": 1
                 }],
-                \"instance_types\": [{\"scopes\": [\"region:was\"], \"type\": \"gpu-nvidia-h100\"}],
+                \"instance_types\": [{\"scopes\": [\"region:sfo\"], \"type\": \"gpu-nvidia-h100\"}],
                 \"health_checks\": [{
                   \"http\": {\"path\": \"/health\", \"port\": 8000, \"method\": \"GET\", \"headers\": []},
                   \"grace_period\": 300,

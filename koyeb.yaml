@@ -28,7 +28,7 @@ definition:
   # Deployment regions
   # GPU availability varies by region
   regions:
-    - was  # Washington DC - GA region, H100 available
+    - sfo  # San Francisco - GPU availability (preview region)
 
   # Port configuration
   ports:
